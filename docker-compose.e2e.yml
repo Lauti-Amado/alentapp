@@ -1,0 +1,59 @@
+services:
+  db-test:
+    image: postgres:16-alpine
+    container_name: alentapp-db-test
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: alentapp_test_db
+    ports:
+      - '5433:5432'   # Puerto diferente al de dev (5432) para convivir
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U admin -d alentapp_test_db']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api-test:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    container_name: alentapp-api-test
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages/api/node_modules
+      - /app/packages/shared/node_modules
+    environment:
+      - DATABASE_URL=postgres://admin:password123@db-test:5432/alentapp_test_db
+      - NODE_ENV=test
+      - PORT=3001
+    ports:
+      - '3001:3001'
+    command: >
+      sh -c "npx prisma migrate deploy --config packages/api/prisma.config.ts &&
+             npx prisma generate --config packages/api/prisma.config.ts &&
+             npx tsx packages/api/src/app.ts"
+    depends_on:
+      db-test:
+        condition: service_healthy
+
+  web-test:
+    build:
+      context: .
+      dockerfile: packages/web/Dockerfile
+    container_name: alentapp-web-test
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/packages/web/node_modules
+      - /app/packages/shared/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:3001
+      - CHOKIDAR_USEPOLLING=true
+    ports:
+      - '5174:5174'
+    # Arranca en puerto 5174 para no chocar con el dev server del 5173
+    command: npm run dev -w packages/web -- --host 0.0.0.0 --port 5174
+    depends_on:
+      - api-test

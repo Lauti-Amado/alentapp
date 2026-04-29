@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+    provider = "prisma-client-js"
+    output   = "../src/generated/client"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+enum MemberCategory {
+    Pleno
+    Cadete
+    Honorario
+}
+
+enum MemberStatus {
+    Activo
+    Moroso
+    Suspendido
+}
+
+model Member {
+    id         String         @id @default(uuid())
+    dni        String         @unique
+    name       String
+    email      String         @unique
+    birthdate  DateTime?      @db.Date
+    category   MemberCategory
+    status     MemberStatus   @default(Activo)
+    created_at DateTime       @default(now())
+
+    @@map("members") // Para que en la DB la tabla se llame 'members' en minúscula
+}

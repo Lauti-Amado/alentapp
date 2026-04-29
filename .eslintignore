@@ -1,0 +1,6 @@
+**/src/core/component/**/libs/**/*.js
+**/src/data/*.js
+**/src/nf-compile.js
+**/src/core/component/text-editor/style/bootstrapck/**/*.js
+node_modules
+vendor

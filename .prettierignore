@@ -1,0 +1,7 @@
+dist
+vendor
+node_modules
+documentation.html
+test/e2e/reports/
+src/styles/icons/eva/selection.json
+src/styles/icons/fontawesome/selection.json

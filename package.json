@@ -1,0 +1,32 @@
+{
+  "name": "alentapp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "e2e:fullstack": "playwright test --config playwright.fullstack.config.ts",
+    "e2e:fullstack:ui": "npm run e2e:fullstack -- --ui",
+    "e2e:fullstack:headed": "npm run e2e:fullstack -- --headed",
+    "e2e:fullstack:ui:run": "npm run e2e:fullstack:up && npm run e2e:fullstack:ui",
+    "e2e:fullstack:headed:run": "npm run e2e:fullstack:up && npm run e2e:fullstack:headed & npm run e2e:fullstack:down",
+    "e2e:fullstack:up": "docker compose -f docker-compose.e2e.yml --project-name alentapp-e2e up -d --build",
+    "e2e:fullstack:down": "docker compose -f docker-compose.e2e.yml --project-name alentapp-e2e down -v",
+    "e2e:fullstack:run": "npm run e2e:fullstack:up && npm run e2e:fullstack & npm run e2e:fullstack:down"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0",
+    "@types/pg": "^8.20.0",
+    "pg": "^8.20.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  }
+}

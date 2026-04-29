@@ -1,0 +1,63 @@
+services:
+    db:
+        image: postgres:16-alpine
+        container_name: alentapp-db
+        environment:
+            POSTGRES_USER: admin
+            POSTGRES_PASSWORD: password123
+            POSTGRES_DB: alentapp_db
+        ports:
+            - '5432:5432'
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U admin -d alentapp_db']
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+    api:
+        build:
+            context: .
+            dockerfile: packages/api/Dockerfile
+        container_name: alentapp-api
+        volumes:
+            - .:/app
+            - /app/node_modules # Protege los binarios del contenedor
+            - /app/packages/api/node_modules # Protege dependencias de la API
+            - /app/packages/shared/node_modules # Protege dependencias shared
+        environment:
+            - DATABASE_URL=postgres://admin:password123@db:5432/alentapp_db
+            - CHOKIDAR_USEPOLLING=true
+            - WATCHPACK_POLLING=true
+        ports:
+            - '3000:3000'
+        command: >
+            sh -c "npx prisma migrate dev --name init --config packages/api/prisma.config.ts &&
+             npx prisma generate --config packages/api/prisma.config.ts &&
+             npx tsx watch packages/api/src/app.ts"
+        depends_on:
+            db:
+                condition: service_healthy
+
+    web:
+        build:
+            context: .
+            dockerfile: packages/web/Dockerfile
+        container_name: alentapp-web
+        environment:
+            - CHOKIDAR_USEPOLLING=true
+            - WATCHPACK_POLLING=true
+        volumes:
+            - .:/app
+            - /app/node_modules
+            - /app/packages/shared/node_modules # Protege dependencias shared
+            - /app/packages/web/node_modules # Protege dependencias web
+        ports:
+            - '5173:5173'
+        command: npm run dev -w packages/web -- --host 0.0.0.0
+        depends_on:
+            - api
+
+volumes:
+    pgdata:
