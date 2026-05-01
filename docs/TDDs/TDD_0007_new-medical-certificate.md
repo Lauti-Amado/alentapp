@@ -14,7 +14,7 @@ titulo: Registro de certificados médicos
 Garantizar un correcto funcionamiento del club debido a la tranquilidad de operar con socios aptos físicamente mediante un certificado médico respaldado profesionalmente. De esta manera se evita digitalmente que los socios puedan realizar actividades peligrosas para su integridad física.
 
 ### User Persona
-- Nombre: Alberto (Tesorero/Administrativo).
+- Nombre: Juan (Administrativo).
 - Necesidad: Mantener centralizado y al alcance el historial de certificados de cada socio, en especial el último emitido ya que este es el que determina la situación actual de cada socio que quiere realizar una actividad en el club.
 
 ### Criterios de Aceptación
@@ -25,31 +25,46 @@ Garantizar un correcto funcionamiento del club debido a la tranquilidad de opera
 ## Diseño Técnico (RFC)
 
 ### Modelo de Datos
-[Descripción de cambios en Prisma o nuevas entidades.]
-*   `campo`: Tipo (Restricciones).
+
+El modelo de datos de la entidad `MedicalCertificate` será:
+
+- `id`: Identificador único universal.
+- `memberId`: Foreign key del member.
+- `fecha_emision`: Fecha de emisión del certificado.
+- `fecha_vencimiento`: Fecha de vencimiento del certificado.
+- `esta_validado`: Boolean | Null (Inicializa en null para luego pasar a su estado final)
+- `licencia_doctor`: Cadena de texto que representa la licencia del doctor que certifica.
 
 ### Contrato de API (@alentapp/shared)
-[Definición de endpoints y tipos compartidos.]
-*   **Endpoint**: `METHOD /api/v1/[recurso]`
-*   **Request Body**:
+Se utilizará el paquete compartido para definir el cuerpo para el alta de un certificado médico.
+*   Endpoint: `POST /api/v1/medical_certificate`
+*   Request Body:
 ```ts
 {
-    // propiedades
+    memberId: Int.
+    fecha_emision: Date.
+    fecha_vencimiento: Date.
+    licencia_doctor: String.
 }
 ```
 
 ### Componentes de Arquitectura Hexagonal
-[Cómo se distribuye la lógica en las capas.]
-*   **Domain**: [Entidades, Value Objects, Reglas de negocio]
-*   **Application**: [Casos de Uso, Puertos de Salida]
-*   **Infrastructure**: [Adaptadores, Controladores, Implementación de Repositorios]
+
+1. Puerto: MedicalCertificateRepository (Interface en el Dominio).
+2. Caso de Uso: CreateMedicalCertificate (Lógica que verifica si el DNI ya existe antes de llamar al repositorio).
+3. Adaptador de Salida: DB persistence adapter (Implementación real en BD).
+4. Adaptador de Entrada: MedicalCertificateController (Ruta HTTP).
 
 ## Casos de Borde y Errores
 | Escenario                   | Resultado Esperado                            | Código HTTP               |
 | ----------------------------| --------------------------------------------- | ------------------------- |
-| [Ej: DNI ya registrado]     | [Error de validación con mensaje claro]       | 409 Conflict              |
-| [Ej: Formato email inválido]| [Error de validación de formato]              | 400 Bad Request           |
+| [Ej: Fecha vencimiento < Fecha emision ]| [Error de validación de coherencia de fechas]       | 409 Conflict              |
+| [Ej: Formato fecha inválida]| [Error de validación de formato]              | 400 Bad Request           |
+| [Ej: MemberID no encontrado]| [Error de member no existente]              | 400 Bad Request           |
 
 ## Plan de Implementación
-1. [Paso 1: ej. Definir tipos en @alentapp/shared]
-2. [Paso 2: ej. Implementar entidad en Domain]
+
+1. Definir esquema de persistencia y correr migración.
+2. Crear tipos en shared y puerto en el Dominio.
+3. Implementar el repositorio y el caso de uso.
+4. Crear formulario en React y conectar con el endpoint del backend.
