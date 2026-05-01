@@ -2,7 +2,7 @@
 id: 0007
 estado: Implementado
 autor: Yamil Tundis
-fecha: [2026-04-30]
+fecha: [2026-05-01]
 titulo: Registro de certificados médicos
 ---
 
