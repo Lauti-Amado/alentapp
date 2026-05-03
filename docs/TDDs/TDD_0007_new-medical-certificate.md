@@ -20,7 +20,7 @@ Garantizar un correcto funcionamiento del club debido a la tranquilidad de opera
 ### Criterios de Aceptación
 - El sistema debe validar que la fecha de vencimiento sea mayor que la fecha de emisión del certificado.
 - El sistema debe inicializar el certificado como 'esta_validado = true'.
-- Al finalizar, el sistema debe mostrar un mensaje de éxito e invalidar los anteriores certificados médicos del socio en cuestión.
+- Al finalizar, el sistema debe mostrar un mensaje de éxito e invalida el anterior certificado médico del socio en cuestión poniendo su atributo 'esta_validado' en 'false'.
 
 ## Diseño Técnico (RFC)
 
@@ -32,11 +32,12 @@ El modelo de datos de la entidad `MedicalCertificate` será:
 - `memberId`: Foreign key del member.
 - `fecha_emision`: Fecha de emisión del certificado.
 - `fecha_vencimiento`: Fecha de vencimiento del certificado.
-- `esta_validado`: Boolean
+- `esta_validado`: Boolean (define si está vigente)
 - `licencia_doctor`: Cadena de texto que representa la licencia del doctor que certifica.
 
 ### Contrato de API (@alentapp/shared)
-Se utilizará el paquete compartido para definir el cuerpo para el alta de un certificado médico.
+Se utilizará el paquete compartido para definir el cuerpo para el alta de un certificado médico. Cómo 'esta_validado' se inicializa en 'True', entonces no se manda como parámetro en el Request Body.
+
 *   Endpoint: `POST /api/v1/medical_certificate`
 *   Request Body:
 ```ts

@@ -6,13 +6,13 @@ fecha: 2026-05-02
 titulo: Eliminación de Certificados Médicos
 ---
 
-# TDD-0003: Eliminación de Socios Existentes
+# TDD-0009: Eliminación de Certificados Médicos Existentes
 
 ## Contexto de Negocio (PRD)
 
 ### Objetivo
 
-Permitir a los administrativos eliminar un certificado médico del sistema permanentement, eliminando su registro de la base de datos para mantener la lista actualizada y libre de registros duplicados o cancelados erróneamente.
+Permitir a los administrativos eliminar un certificado médico del sistema permanentemente, eliminando su registro de la base de datos para mantener la lista actualizada y libre de registros duplicados o cancelados erróneamente.
 
 ### User Persona
 
@@ -21,8 +21,9 @@ Permitir a los administrativos eliminar un certificado médico del sistema perma
 
 ### Criterios de Aceptación
 
-- El sistema debe pedir una confirmación explícita (advertencia visual) antes de proceder con el borrado.
+- El sistema debe pedir una confirmación explícita antes de proceder con el borrado.
 - El sistema debe validar que el certificado médico exista antes de intentar borrarlo.
+- El sistema debe corroborar si el certificado a eliminar es el último del cliente (es decir, el que tenga 'esta_valido = true'). Si es el último, debe al anterior asignarle a su atributo 'esta_validado' con 'true'. Esto para determinar que ahora el certificado médico vigente del socio es ahora el anterior al que fue borrad.
 - El sistema debe realizar un borrado físico de la base de datos (hard delete).
 - Si el borrado es exitoso, la tabla debe actualizarse automáticamente.
 
