@@ -1,5 +1,5 @@
 ---
-id: 0011
+id: 11
 estado: Pendiente
 autor: Lautaro Amado
 fecha: 2026-05-02
