@@ -1,5 +1,5 @@
 ---
-id: 00010
+id: 10
 estado: Pendiente
 autor: Lautaro Amado
 fecha: 2026-05-02
