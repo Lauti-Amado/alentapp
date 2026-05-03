@@ -1,8 +1,8 @@
- | id     | 0013                                 |
+ | id     | 13                                   |
  |--------|--------------------------------------|
  | estado | implementado                         |
- | autor  | Figueira Julian                      | 
- | fecha  | 03/05/2025                           | 
+ | autor  | Julian Figueira                      | 
+ | fecha  | 03-05-2025                           | 
  | titulo | Alta de Deportes                     |
 
 
