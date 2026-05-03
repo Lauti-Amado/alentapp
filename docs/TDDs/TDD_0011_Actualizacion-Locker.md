@@ -49,9 +49,10 @@ Se utilizará el paquete compartido para definir el cuerpo de la petición. Todo
 ### Componentes de Arquitectura Hexagonal
 
 1. **Puerto**: `LockerRepository` (Interfaz que define el método `update(id, data)`).
-2. **Caso de Uso**: `UpdateLocker` (Orquesta la validación y llama al repositorio).
-3. **Adaptador de Salida**: `PostgresLockerRepository` (Actualización usando el método `update` de Prisma).
-4. **Adaptador de Entrada**: `LockerController` (Ruta HTTP que extrae el `id` de la URL y mapea excepciones a códigos HTTP).
+2. Servicio de Dominio: LockerValidator (Encargado de centralizar y reutilizar las validaciones de unicidad del número de locker y la consistencia de los estados de asignación).
+3. **Caso de Uso**: `UpdateLocker` (Orquesta la validación y llama al repositorio).
+4. **Adaptador de Salida**: `PostgresLockerRepository` (Actualización usando el método `update` de Prisma).
+5. **Adaptador de Entrada**: `LockerController` (Ruta HTTP que extrae el `id` de la URL y mapea excepciones a códigos HTTP).
 
 ## Casos de Borde y Errores
 
@@ -68,6 +69,6 @@ Se utilizará el paquete compartido para definir el cuerpo de la petición. Todo
 
 1. Actualizar las interfaces en el paquete `@alentapp/shared` (`UpdateLockerRequest`) con validaciones Zod (haciendo los campos `.optional()`).
 2. Ampliar el `LockerRepository` con el método `update`.
-3. Implementar la lógica `UpdateLocker`.
+3. Implementar la lógica `UpdateLocker` utilizando `LockerValidator` centralizado.
 4. Crear la ruta `PUT` en el controlador y enlazarla a la app de Fastify.
 5. Consumir el endpoint desde el servicio de Frontend, implementando un buscador de socios (por DNI o nombre) para obtener el `member_id` para la asignación, y reutilizar el modal de creación para permitir la edición.
