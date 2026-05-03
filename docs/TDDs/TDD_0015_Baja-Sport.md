@@ -1,8 +1,8 @@
- | id     | 0015                                 |
+ | id     | 15                                   |
  |--------|--------------------------------------|
  | estado | implementado                         |
- | autor  | Figueira Julian                      | 
- | fecha  | 03/05/2025                           | 
+ | autor  | Julian Figueira                      | 
+ | fecha  | 03-05-2025                           | 
  | titulo | Baja de Deportes                     |
 
 #  TDD-0015: Eliminación de Deportes Existentes

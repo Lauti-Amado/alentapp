@@ -1,9 +1,9 @@
 
- | id     | 0014                                 |
+ | id     | 14                                   |
  |--------|--------------------------------------|
  | estado | implementado                         |
- | autor  | Figueira Julian                      | 
- | fecha  | 03/05/2025                           | 
+ | autor  | Julian Figueira                      | 
+ | fecha  | 03-05-2025                           | 
  | titulo | Actualizacion de Deportes Existentes |
 
 
