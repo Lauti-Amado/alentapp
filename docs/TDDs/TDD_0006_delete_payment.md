@@ -1,5 +1,5 @@
 ---
-id: 0006
+id: 6
 estado: Pendiente
 autor: Bernardita La Gioiosa
 fecha: 2026-05-02
