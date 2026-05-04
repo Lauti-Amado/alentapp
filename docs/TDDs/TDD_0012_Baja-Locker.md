@@ -1,6 +1,6 @@
 ---
 id: 12
-estado: Pendiente
+estado: Propuesto
 autor: Lautaro Amado
 fecha: 2026-05-02
 titulo: Eliminación de Lockers Existentes

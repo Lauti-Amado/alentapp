@@ -1,6 +1,6 @@
 ---
 id: 11
-estado: Pendiente
+estado: Propuesto
 autor: Lautaro Amado
 fecha: 2026-05-02
 titulo: Actualización de Lockers Existentes
@@ -49,7 +49,7 @@ Se utilizará el paquete compartido para definir el cuerpo de la petición. Todo
 ### Componentes de Arquitectura Hexagonal
 
 1. **Puerto**: `LockerRepository` (Interfaz que define el método `update(id, data)`).
-2. Servicio de Dominio: LockerValidator (Encargado de centralizar y reutilizar las validaciones de unicidad del número de locker y la consistencia de los estados de asignación).
+2. **Servicio de Dominio**: `LockerValidator`(Encargado de centralizar y reutilizar las validaciones de unicidad del número de locker y la consistencia de los estados de asignación).
 3. **Caso de Uso**: `UpdateLocker` (Orquesta la validación y llama al repositorio).
 4. **Adaptador de Salida**: `PostgresLockerRepository` (Actualización usando el método `update` de Prisma).
 5. **Adaptador de Entrada**: `LockerController` (Ruta HTTP que extrae el `id` de la URL y mapea excepciones a códigos HTTP).
