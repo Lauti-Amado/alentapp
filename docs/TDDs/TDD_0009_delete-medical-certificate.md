@@ -1,6 +1,6 @@
 ---
-id: 0009
-estado: Implementado
+id: 9
+estado: Propuesto
 autor: Yamil Tundis
 fecha: 2026-05-02
 titulo: Eliminación de Certificados Médicos
