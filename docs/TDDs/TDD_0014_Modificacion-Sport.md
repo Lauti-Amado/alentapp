@@ -1,7 +1,7 @@
 
  | id     | 14                                   |
  |--------|--------------------------------------|
- | estado | implementado                         |
+ | estado | Propuesto                            |
  | autor  | Julian Figueira                      | 
  | fecha  | 03-05-2025                           | 
  | titulo | Actualizacion de Deportes Existentes |

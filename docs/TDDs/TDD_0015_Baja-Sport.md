@@ -1,6 +1,6 @@
  | id     | 15                                   |
  |--------|--------------------------------------|
- | estado | implementado                         |
+ | estado | Propuesto                            |
  | autor  | Julian Figueira                      | 
  | fecha  | 03-05-2025                           | 
  | titulo | Baja de Deportes                     |

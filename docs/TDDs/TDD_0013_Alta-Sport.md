@@ -1,6 +1,6 @@
  | id     | 13                                   |
  |--------|--------------------------------------|
- | estado | implementado                         |
+ | estado | Propuesto                            |
  | autor  | Julian Figueira                      | 
  | fecha  | 03-05-2025                           | 
  | titulo | Alta de Deportes                     |
