@@ -1,6 +1,6 @@
 ---
 id: 4
-estado: Pendiente
+estado: Propuesto
 autor: Bernardita La Gioiosa
 fecha: 2026-05-02
 titulo: Registro de Nuevos Pagos
@@ -25,7 +25,7 @@ Permitir que un administrativo registre un nuevo pago asociado a un socio existe
 - El sistema debe validar que el monto sea mayor a cero.
 - El sistema debe validar que el mes y el año correspondan a un periodo válido.
 - El sistema debe validar que la fecha de vencimiento sea una fecha válida.
-- El pago debe quedar guardado con estado `Pendiente` por defecto.
+- El pago debe quedar guardado con estado `Pendiente` por defecto y sin fecha de pago.
 - Si el registro es correcto, debe retornar los datos del pago creado.
 
 ## Diseño Técnico (RFC)
@@ -40,7 +40,7 @@ Se definirá la entidad `Payment` con las siguientes propiedades y restricciones
 - `mes`: Número entero entre 1 y 12.
 - `anio`: Número entero correspondiente al año del periodo abonado.
 - `fechaVencimiento`: Fecha de vencimiento del pago.
-- `fechaPago`: Fecha efectiva de pago, opcional al momento del alta.
+- `fechaPago`: Fecha efectiva de pago, nula al momento del alta.
 - `estado`: Enumeración (`Pendiente`, `Pagado`, `Cancelado`) con valor por defecto `Pendiente`.
 - `creadoEl`: Fecha de creación autogenerada.
 

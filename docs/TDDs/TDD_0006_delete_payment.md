@@ -1,6 +1,6 @@
 ---
 id: 6
-estado: Pendiente
+estado: Propuesto
 autor: Bernardita La Gioiosa
 fecha: 2026-05-02
 titulo: Cancelación de Pagos Existentes
