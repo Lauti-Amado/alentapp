@@ -1,8 +1,8 @@
 ---
-id: 0008
-estado: Implementado
+id: 8
+estado: Propuesto
 autor: Yamil Tundis
-fecha: [2026-05-02]
+fecha: 2026-05-02
 titulo: Actualización de certificados médicos
 ---
 
