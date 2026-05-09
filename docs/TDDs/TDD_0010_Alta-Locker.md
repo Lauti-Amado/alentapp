@@ -70,7 +70,7 @@ Definiremos los tipos en el paquete compartido para asegurar sincronización:
 ## Plan de Implementación
 
 1. Definir el esquema de la entidad `Locker` en el archivo schema.prisma y correr la migración.
-2. Crear tipos con validaciones estrictas ZOD en `@alentapp/shared`.
+2. Crear tipos en `@alentapp/shared`.
 3. Implementar la interfaz `LockerRepository`.
 4. Implementar `CreateLocker`.
 5. Crear endpoint en `LockerController`.

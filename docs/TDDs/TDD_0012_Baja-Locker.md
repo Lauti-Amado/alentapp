@@ -23,7 +23,6 @@ Permitir a los administradores dar de baja permanentemente un locker del sistema
 
 * El sistema debe solicitar confirmación explícita (advertencia visual) antes de proceder con el borrado.
 * El sistema debe validar que el locker exista antes de intentar borrarlo.
-* El sistema debe validar que el locker NO esté en estado "Ocupado" (no se puede eliminar un casillero asignado a un socio).
 * El sistema debe realizar un borrado físico de la base de datos (hard delete).
 * Si la eliminación es exitosa, la operación debe reflejarse inmediatamente en la lista.
 
@@ -49,7 +48,6 @@ Al tratarse de una operación destructiva que solo requiere conocer el identific
 | Escenario           | Resultado Esperado                       | Código HTTP               |
 | ------------------- | ---------------------------------------- | ------------------------- |
 | Locker inexistente  | Mensaje: "El locker solicitado no existe"                    | 404 Not Found           |
-| Locker ocupado      | Mensaje: "No se puede eliminar un locker que se encuentra ocupado" | 409 Conflict              |
 | Error de DB         | Mensaje: "Error interno, reintente más tarde"   | 500 Internal Server Error |
 | Eliminación exitosa | Respuesta vacía                            | 204 No Content            |
 
