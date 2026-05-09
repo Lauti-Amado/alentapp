@@ -23,9 +23,9 @@ Permitir a los administradores corregir o modificar la información de un locker
 
 * El sistema debe permitir actualizar uno, varios o todos los campos del locker.
 * El sistema debe validar que el locker a editar exista.
-* El sistema debe validar que, si se cambia el número, este no pertenezca ya a otro locker .
+* El sistema debe validar que, si se cambia el número, este no pertenezca ya a otro locker.
 * El sistema debe validar que, si se asigna un locker a un socio, la unidad se encuentre previamente en estado "Disponible".
-* El sistema debe validar que si un locker tiene un socio asignado (`member_id` distinto de null), el estado del locker no sea "Disponible" o "Mantenimiento".
+* El sistema debe validar que si un locker tiene un socio asignado (`member_id` distinto de null), el estado del locker sea "Ocupado".
 * Si la edición es exitosa, el sistema debe retornar los nuevos datos del locker actualizados.
 
 ## Diseño Técnico (RFC)
@@ -61,13 +61,12 @@ Se utilizará el paquete compartido para definir el cuerpo de la petición. Todo
 | Locker inexistente | Mensaje: "El locker solicitado no existe"                | 404 Not Found           |
 | Número duplicado   | Mensaje: "Ya existe un locker con ese número" | 409 Conflict              |
 | Locker no disponible para asignación   | Mensaje: "Solo se pueden asignar lockers en estado Disponible"   | 400 Bad Request           |
-| Inconsistencia de estado al editar  | Mensaje: "Un locker con socio asignado debe estar en estado Ocupado"         | 400 Bad Request           |
 | Datos inválidos   | Mensaje: "Los campos enviados tienen un formato inválido"                    | 400 Bad Request           |
 | Error de DB        | Mensaje: "Error interno, reintente más tarde"                      | 500 Internal Server Error |
 
 ## Plan de Implementación
 
-1. Actualizar las interfaces en el paquete `@alentapp/shared` (`UpdateLockerRequest`) con validaciones Zod (haciendo los campos `.optional()`).
+1. Actualizar las interfaces en el paquete `@alentapp/shared` (`UpdateLockerRequest`).
 2. Ampliar el `LockerRepository` con el método `update`.
 3. Implementar la lógica `UpdateLocker` utilizando `LockerValidator` centralizado.
 4. Crear la ruta `PUT` en el controlador y enlazarla a la app de Fastify.
