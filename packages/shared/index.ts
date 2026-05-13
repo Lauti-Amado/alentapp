@@ -31,3 +31,22 @@ export interface UpdateMemberRequest {
   category?: MemberCategory;
   status?: MemberStatus;
 }
+
+
+// ==========================================
+// Locker
+// ==========================================
+export type LockerStatus = 'Disponible' | 'Ocupado' | 'Mantenimiento';
+
+export interface LockerDTO {
+    id: string; // UUID
+    numero: number;
+    estado: LockerStatus;
+    ubicacion: string;
+    member_id: string | null;
+}
+
+export interface CreateLockerRequest {
+    numero: number;
+    ubicacion: string;
+}
