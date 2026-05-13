@@ -25,14 +25,28 @@ enum MemberStatus {
 }
 
 model Member {
-    id         String         @id @default(uuid())
-    dni        String         @unique
-    name       String
-    email      String         @unique
-    birthdate  DateTime?      @db.Date
-    category   MemberCategory
-    status     MemberStatus   @default(Activo)
-    created_at DateTime       @default(now())
+    id          String         @id @default(uuid())
+    dni         String         @unique
+    name        String
+    email       String         @unique
+    birthdate   DateTime?      @db.Date
+    category    MemberCategory
+    status      MemberStatus   @default(Activo)
+    created_at  DateTime       @default(now())
+    disciplines Discipline[]
 
-    @@map("members") // Para que en la DB la tabla se llame 'members' en minúscula
+    @@map("members")
+}
+
+model Discipline {
+    id                   String    @id @default(uuid())
+    motivo               String
+    fechaInicio          DateTime
+    fechaFin             DateTime
+    esSuspensionTotal    Boolean   @default(true)
+    motivoLevantamiento  String?
+    memberId             String
+    member               Member    @relation(fields: [memberId], references: [id])
+
+    @@map("disciplines")
 }
