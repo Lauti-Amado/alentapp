@@ -20,7 +20,6 @@ Permitir a los administrativos corregir algun dato puntual sobre los certificado
 ### Criterios de Aceptación
 - El sistema debe permitir actualizar cualquier cantidad requerida de los campos del socio.
 - El sistema debe validar, en caso que se quiera modificar al menos 1 fecha, que las fechas (de emisión y vencimiento) cumplan con su formato adecuado y que la fecha de vencimiento sea mayor que la de emisión.
-- El sistema debe pedir confirmación en el caso que se quiera modificar el MemberID, de manera que no haya equivocaciones de asignar el certificado médico por error a otra persona.
 - En caso de la edición ser correcta, el sistema retornará los nuevos datos del certificado médico actualizado.
 
 ## Diseño Técnico (RFC)
@@ -51,9 +50,9 @@ En este paquete se define el formato que debe cumplir la request en el caso de m
 ## Casos de Borde y Errores
 | Escenario                   | Resultado Esperado                            | Código HTTP               |
 | ----------------------------| --------------------------------------------- | ------------------------- |
-| MemberID inexistente     | [Error de member no existente]       | 400 Bad Request             |
-| Fecha vencimiento < Fecha emision | [Error de validación de coherencia de fechas]       | 409 Conflict              |
-| Formato fecha inválida| [Error de validación de formato]              | 400 Bad Request           |
+| MemberID inexistente     | [Error de miembro no existente]       | 400 Bad Request             |
+| Fecha vencimiento < Fecha emision | [Error de validación de coherencia entre fechas]       | 409 Conflict              |
+| Formato fecha inválida| [Error de validación de formato de fechas]              | 400 Bad Request           |
 | Error de conexión a DB     | Mensaje: "Error interno, reintente más tarde" | 500 Internal Server Error |
 
 ## Plan de Implementación
