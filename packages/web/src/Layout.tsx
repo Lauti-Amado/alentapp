@@ -32,6 +32,19 @@ function Layout() {
                             >
                                 Miembros
                             </Text>
+                            
+                        </RouterLink>
+                        <RouterLink to="/lockers">
+                            <Text 
+                                fontWeight="semibold" 
+                                fontSize="sm" 
+                                textTransform="uppercase" 
+                                letterSpacing="wider"
+                                color="fg.muted"
+                                _hover={{ color: "blue.500", textDecoration: "none" }}
+                            >
+                                Lockers
+                            </Text>
                         </RouterLink>
                         <RouterLink to="/disciplines">
                             <Text 
