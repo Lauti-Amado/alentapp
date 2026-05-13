@@ -1,8 +1,10 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { PostgresMemberRepository } from './infrastructure/PostgresMemberRepository.js';
+import { PostgresLockerRepository } from './infrastructure/PostgresLockerRepository.js';
 import { PostgresDisciplineRepository } from './infrastructure/PostgresDisciplineRepository.js';
 import { MemberValidator } from './domain/services/MemberValidator.js';
+import { CreateLocker } from './application/CreateLocker.js';
 import { CreateDisciplineUseCase } from './application/CreateDisciplineUseCase.js';
 import { GetDisciplinesUseCase } from './application/GetDisciplinesUseCase.js';
 import { CreateMemberUseCase } from './application/NewMemberUseCase.js';
@@ -11,6 +13,7 @@ import { GetMemberByDniUseCase } from './application/GetMemberByDniUseCase.js';
 import { UpdateMemberUseCase } from './application/UpdateMemberUseCase.js';
 import { DeleteMemberUseCase } from './application/DeleteMemberUseCase.js';
 import { MemberController } from './delivery/MemberController.js';
+import { LockerController } from './delivery/LockerController.js';
 import { DisciplineController } from './delivery/DisciplineController.js';
 
 export function buildApp() {
@@ -35,6 +38,7 @@ export function buildApp() {
 
     const memberRepo = new PostgresMemberRepository();
     const memberValidator = new MemberValidator(memberRepo);
+    const lockerRepo = new PostgresLockerRepository();
     const disciplineRepo = new PostgresDisciplineRepository();
     
     const createMemberUseCase = new CreateMemberUseCase(memberRepo, memberValidator);
@@ -42,6 +46,7 @@ export function buildApp() {
     const getMemberByDniUseCase = new GetMemberByDniUseCase(memberRepo);
     const updateMemberUseCase = new UpdateMemberUseCase(memberRepo, memberValidator);
     const deleteMemberUseCase = new DeleteMemberUseCase(memberRepo);
+    const createLockerUseCase = new CreateLocker(lockerRepo);
     const createDisciplineUseCase = new CreateDisciplineUseCase(disciplineRepo, memberRepo);
     const getDisciplinesUseCase = new GetDisciplinesUseCase(disciplineRepo);
 
@@ -53,16 +58,24 @@ export function buildApp() {
         deleteMemberUseCase
     );
 
+    const lockerController = new LockerController(
+        createLockerUseCase
+    );
+
     const disciplineController = new DisciplineController(
         createDisciplineUseCase,
         getDisciplinesUseCase
     );
 
+    //Miembro
     server.get('/api/v1/socios', memberController.getAll.bind(memberController));
     server.get('/api/v1/socios/dni/:dni', memberController.getByDni.bind(memberController));
     server.post('/api/v1/socios', memberController.create.bind(memberController));
     server.put('/api/v1/socios/:id', memberController.update.bind(memberController));
     server.delete('/api/v1/socios/:id', memberController.delete.bind(memberController));
+    //Locker
+    server.post('/api/v1/lockers', lockerController.create.bind(lockerController));
+    //Discipline
     server.get('/api/v1/disciplines', disciplineController.getAll.bind(disciplineController));
     server.post('/api/v1/disciplines', disciplineController.create.bind(disciplineController));
 
