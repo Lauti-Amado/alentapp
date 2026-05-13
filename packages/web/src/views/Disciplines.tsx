@@ -14,7 +14,7 @@ import {
     Checkbox,
     Spinner,
 } from "@chakra-ui/react";
-import { LuPencil, LuPlus, LuSearch, LuShieldOff, LuX } from "react-icons/lu";
+import { LuPencil, LuPlus, LuSearch, LuShieldOff, LuTrash2, LuX } from "react-icons/lu";
 import { useState, useEffect } from "react";
 import { disciplinesService } from "../services/disciplines";
 import { membersService } from "../services/members";
@@ -108,6 +108,16 @@ export function DisciplinesView() {
             alert(err.message || "Error al modificar la sanción");
         } finally {
             setIsEditSubmitting(false);
+        }
+    };
+
+    const handleDelete = async (id: string, motivo: string) => {
+        if (!window.confirm(`¿Estás seguro de que deseas eliminar la sanción "${motivo}"? Esta acción no se puede deshacer.`)) return;
+        try {
+            await disciplinesService.delete(id);
+            fetchDisciplines();
+        } catch (err: any) {
+            alert(err.message || "Error al eliminar la sanción");
         }
     };
 
@@ -452,6 +462,9 @@ export function DisciplinesView() {
                                                         <LuShieldOff /> Levantar
                                                     </Button>
                                                 )}
+                                                <Button size="sm" colorPalette="red" variant="outline" onClick={() => handleDelete(d.id, d.motivo)}>
+                                                    <LuTrash2 /> Eliminar
+                                                </Button>
                                             </HStack>
                                         </Table.Cell>
                                     </Table.Row>
