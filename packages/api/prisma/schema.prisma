@@ -35,4 +35,28 @@ model Member {
     created_at DateTime       @default(now())
 
     @@map("members") // Para que en la DB la tabla se llame 'members' en minúscula
+    lockers Locker[] // Validacion de la relación bidicreccional con 'locker'
 }
+
+
+// LOCKER
+enum LockerStatus {
+    Disponible
+    Ocupado
+    Mantenimiento
+}
+
+model Locker {
+    id        String       @id @default(uuid()) // Identificador único universal (UUID)
+    numero    Int          @unique // Número entero, único e indexado
+    estado    LockerStatus @default(Disponible)
+    ubicacion String //Cadena de texto
+    member_id String?      // Clave foránea, nullable
+
+    // Relación opcional con Member para mantener consistencia
+    member    Member?      @relation(fields: [member_id], references: [id])
+
+    @@map("lockers") // Para que en la DB la tabla se llame 'lockers' en minúscula
+}
+
+// LOCKER
