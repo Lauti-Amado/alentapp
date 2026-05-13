@@ -1,12 +1,14 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { CreateDisciplineUseCase } from '../application/CreateDisciplineUseCase.js';
 import { GetDisciplinesUseCase } from '../application/GetDisciplinesUseCase.js';
-import { CreateDisciplineRequest } from '@alentapp/shared';
+import { UpdateDisciplineUseCase } from '../application/UpdateDisciplineUseCase.js';
+import { CreateDisciplineRequest, UpdateDisciplineRequest } from '@alentapp/shared';
 
 export class DisciplineController {
     constructor(
         private readonly createDisciplineUseCase: CreateDisciplineUseCase,
-        private readonly getDisciplinesUseCase: GetDisciplinesUseCase
+        private readonly getDisciplinesUseCase: GetDisciplinesUseCase,
+        private readonly updateDisciplineUseCase: UpdateDisciplineUseCase
     ) {}
 
     async getAll(_request: FastifyRequest, reply: FastifyReply) {
@@ -33,6 +35,24 @@ export class DisciplineController {
                 return reply.status(409).send({ error: error.message });
             }
             if (error.message.includes('posterior')) {
+                return reply.status(400).send({ error: error.message });
+            }
+            return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
+        }
+    }
+
+    async update(
+        request: FastifyRequest<{ Params: { id: string }; Body: UpdateDisciplineRequest }>,
+        reply: FastifyReply,
+    ) {
+        try {
+            const sancion = await this.updateDisciplineUseCase.execute(request.params.id, request.body);
+            return reply.status(200).send({ data: sancion });
+        } catch (error: any) {
+            if (error.message.includes('no existe')) {
+                return reply.status(404).send({ error: error.message });
+            }
+            if (error.message.includes('inválido') || error.message.includes('caducado')) {
                 return reply.status(400).send({ error: error.message });
             }
             return reply.status(500).send({ error: 'Error interno, reintente más tarde' });

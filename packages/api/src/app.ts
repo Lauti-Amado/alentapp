@@ -5,6 +5,7 @@ import { PostgresDisciplineRepository } from './infrastructure/PostgresDisciplin
 import { MemberValidator } from './domain/services/MemberValidator.js';
 import { CreateDisciplineUseCase } from './application/CreateDisciplineUseCase.js';
 import { GetDisciplinesUseCase } from './application/GetDisciplinesUseCase.js';
+import { UpdateDisciplineUseCase } from './application/UpdateDisciplineUseCase.js';
 import { CreateMemberUseCase } from './application/NewMemberUseCase.js';
 import { GetMembersUseCase } from './application/GetMembersUseCase.js';
 import { GetMemberByDniUseCase } from './application/GetMemberByDniUseCase.js';
@@ -44,6 +45,7 @@ export function buildApp() {
     const deleteMemberUseCase = new DeleteMemberUseCase(memberRepo);
     const createDisciplineUseCase = new CreateDisciplineUseCase(disciplineRepo, memberRepo);
     const getDisciplinesUseCase = new GetDisciplinesUseCase(disciplineRepo);
+    const updateDisciplineUseCase = new UpdateDisciplineUseCase(disciplineRepo);
 
     const memberController = new MemberController(
         createMemberUseCase, 
@@ -55,7 +57,8 @@ export function buildApp() {
 
     const disciplineController = new DisciplineController(
         createDisciplineUseCase,
-        getDisciplinesUseCase
+        getDisciplinesUseCase,
+        updateDisciplineUseCase
     );
 
     server.get('/api/v1/socios', memberController.getAll.bind(memberController));
@@ -65,6 +68,7 @@ export function buildApp() {
     server.delete('/api/v1/socios/:id', memberController.delete.bind(memberController));
     server.get('/api/v1/disciplines', disciplineController.getAll.bind(disciplineController));
     server.post('/api/v1/disciplines', disciplineController.create.bind(disciplineController));
+    server.put('/api/v1/disciplines/:id', disciplineController.update.bind(disciplineController));
 
     server.get('/', async (req, rep) => {
         rep.status(200).send({ msg: 'asd' })
