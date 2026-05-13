@@ -53,4 +53,14 @@ export const membersService = {
       throw new Error(errorData.error || 'Error al eliminar el miembro');
     }
   },
+
+  async getByDni(dni: string): Promise<MemberDTO> {
+    const response = await fetch(`${API_URL}/socios/dni/${encodeURIComponent(dni)}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Socio no encontrado');
+    }
+    const result = await response.json();
+    return result.data;
+  }
 };
