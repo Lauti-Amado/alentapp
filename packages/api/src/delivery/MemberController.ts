@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { CreateMemberUseCase } from '../application/NewMemberUseCase.js';
 import { GetMembersUseCase } from '../application/GetMembersUseCase.js';
+import { GetMemberByDniUseCase } from '../application/GetMemberByDniUseCase.js';
 import { UpdateMemberUseCase } from '../application/UpdateMemberUseCase.js';
 import { DeleteMemberUseCase } from '../application/DeleteMemberUseCase.js';
 import { CreateMemberRequest, UpdateMemberRequest } from '@alentapp/shared';
@@ -9,6 +10,7 @@ export class MemberController {
     constructor(
         private readonly createMemberUseCase: CreateMemberUseCase,
         private readonly getMembersUseCase: GetMembersUseCase,
+        private readonly getMemberByDniUseCase: GetMemberByDniUseCase,
         private readonly updateMemberUseCase: UpdateMemberUseCase,
         private readonly deleteMemberUseCase: DeleteMemberUseCase,
     ) {}
@@ -70,6 +72,22 @@ export class MemberController {
             return reply.status(204).send(); // No Content
         } catch (error: any) {
             return reply.status(400).send({ error: error.message });
+        }
+    }
+
+    async getByDni(
+        request: FastifyRequest<{ Params: { dni: string } }>,
+        reply: FastifyReply,
+    ) {
+        try {
+            const { dni } = request.params;
+            const socio = await this.getMemberByDniUseCase.execute(dni);
+            return reply.status(200).send({ data: socio });
+        } catch (error: any) {
+            if (error.message.includes('no existe')) {
+                return reply.status(404).send({ error: error.message });
+            }
+            return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
         }
     }
 }
