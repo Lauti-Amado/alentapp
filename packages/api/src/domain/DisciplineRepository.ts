@@ -5,5 +5,6 @@ export interface IDisciplineRepository {
     findAll(): Promise<DisciplineDTO[]>;
     findById(id: string): Promise<DisciplineDTO | null>;
     update(id: string, data: UpdateDisciplineRequest): Promise<DisciplineDTO>;
+    delete(id: string): Promise<void>;
     findActiveTotalSuspensionByMember(memberId: string): Promise<DisciplineDTO | null>;
 }
