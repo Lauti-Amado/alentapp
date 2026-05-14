@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/client/client.js';
 import { LockerRepository } from '../domain/LockerRepository.js';
 import { LockerDTO, CreateLockerRequest, LockerStatus } from '@alentapp/shared';
+import { UpdateLockerRequest } from '../../../shared/index.js';
 
 if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL environment variable is not set');
@@ -47,6 +48,24 @@ export class PostgresLockerRepository implements LockerRepository {
         });
 
         return locker ? this.mapToDTO(locker as DBLocker) : null;
+    }
+
+    async findById(id: string): Promise<LockerDTO | null> {
+        const locker = await prisma.locker.findUnique({ where: { id } });
+        return locker ? this.mapToDTO(locker as DBLocker) : null;
+    }
+
+    async update(id: string, data: Partial<UpdateLockerRequest>): Promise<LockerDTO> {
+        const updated = await prisma.locker.update({
+            where: { id },
+            data: {
+                numero: data.numero,
+                estado: data.estado,
+                ubicacion: data.ubicacion,
+                member_id: data.member_id
+            }
+        });
+        return this.mapToDTO(updated as DBLocker);
     }
 
     private mapToDTO(locker: DBLocker): LockerDTO {
