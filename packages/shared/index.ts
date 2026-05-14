@@ -72,3 +72,11 @@ export interface CreateDisciplineRequest {
   memberId: string;
   motivoLevantamiento: string | null;
 }
+
+export interface UpdateDisciplineRequest {
+  motivo?: string;
+  fechaInicio?: string;
+  fechaFin?: string;
+  esSuspensionTotal?: boolean;
+  motivoLevantamiento?: string | null;
+}

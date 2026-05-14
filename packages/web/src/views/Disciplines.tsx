@@ -10,14 +10,15 @@ import {
     Box,
     Flex,
     Input,
+    Textarea,
     Checkbox,
     Spinner,
 } from "@chakra-ui/react";
-import { LuPlus, LuSearch, LuX } from "react-icons/lu";
+import { LuPencil, LuPlus, LuSearch, LuShieldOff, LuTrash2, LuX } from "react-icons/lu";
 import { useState, useEffect } from "react";
 import { disciplinesService } from "../services/disciplines";
 import { membersService } from "../services/members";
-import type { CreateDisciplineRequest, DisciplineDTO, MemberDTO } from "@alentapp/shared";
+import type { CreateDisciplineRequest, DisciplineDTO, MemberDTO, UpdateDisciplineRequest } from "@alentapp/shared";
 import {
     DialogRoot,
     DialogContent,
@@ -61,11 +62,85 @@ export function DisciplinesView() {
     const [foundMember, setFoundMember] = useState<MemberDTO | null>(null);
     const [dniError, setDniError] = useState<string | null>(null);
 
+    // Estado modal editar
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState<UpdateDisciplineRequest>({});
+    const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+
+    // Estado modal levantar
+    const [isLiftOpen, setIsLiftOpen] = useState(false);
+    const [liftingId, setLiftingId] = useState<string | null>(null);
+    const [liftMotivo, setLiftMotivo] = useState("");
+    const [isLiftSubmitting, setIsLiftSubmitting] = useState(false);
+
     // Mapa de socios (id → MemberDTO) para mostrar nombres en la tabla
     const [membersMap, setMembersMap] = useState<Map<string, MemberDTO>>(new Map());
 
     // Filtro de búsqueda de la tabla
     const [filterQuery, setFilterQuery] = useState("");
+
+    const openEditModal = (d: DisciplineDTO) => {
+        setEditingId(d.id);
+        setEditForm({
+            motivo: d.motivo,
+            fechaInicio: d.fechaInicio.split("T")[0],
+            fechaFin: d.fechaFin.split("T")[0],
+            esSuspensionTotal: d.esSuspensionTotal,
+            ...(d.motivoLevantamiento !== null && { motivoLevantamiento: d.motivoLevantamiento }),
+        });
+        setIsEditOpen(true);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingId) return;
+        setIsEditSubmitting(true);
+        try {
+            await disciplinesService.update(editingId, {
+                ...editForm,
+                ...(editForm.fechaInicio && { fechaInicio: new Date(editForm.fechaInicio).toISOString() }),
+                ...(editForm.fechaFin && { fechaFin: new Date(editForm.fechaFin).toISOString() }),
+            });
+            setIsEditOpen(false);
+            fetchDisciplines();
+        } catch (err: any) {
+            alert(err.message || "Error al modificar la sanción");
+        } finally {
+            setIsEditSubmitting(false);
+        }
+    };
+
+    const handleDelete = async (id: string, motivo: string) => {
+        if (!window.confirm(`¿Estás seguro de que deseas eliminar la sanción "${motivo}"? Esta acción no se puede deshacer.`)) return;
+        try {
+            await disciplinesService.delete(id);
+            fetchDisciplines();
+        } catch (err: any) {
+            alert(err.message || "Error al eliminar la sanción");
+        }
+    };
+
+    const openLiftModal = (d: DisciplineDTO) => {
+        setLiftingId(d.id);
+        setLiftMotivo("");
+        setIsLiftOpen(true);
+    };
+
+    const handleLiftSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!liftingId || !liftMotivo.trim()) return;
+        setIsLiftSubmitting(true);
+        try {
+            await disciplinesService.update(liftingId, { motivoLevantamiento: liftMotivo.trim() });
+            setIsLiftOpen(false);
+            fetchDisciplines();
+        } catch (err: any) {
+            alert(err.message || "Error al levantar la sanción");
+        } finally {
+            setIsLiftSubmitting(false);
+        }
+    };
 
     const fetchDisciplines = async () => {
         setIsLoading(true);
@@ -356,6 +431,7 @@ export function DisciplinesView() {
                             </Table.Header>
                             <Table.Body>
                                 {filteredDisciplines.map((d) => {
+                                    const isLiftable = d.motivoLevantamiento === null && new Date(d.fechaFin) > new Date();
                                     return (
                                     <Table.Row key={d.id} _hover={{ bg: "bg.muted/30" }}>
                                         <Table.Cell fontWeight="medium" color="fg.emphasized">{membersMap.get(d.memberId)?.name ?? d.memberId}</Table.Cell>
@@ -376,6 +452,21 @@ export function DisciplinesView() {
                                                 <Badge colorPalette="red">Vigente</Badge>
                                             )}
                                         </Table.Cell>
+                                        <Table.Cell textAlign="end">
+                                            <HStack gap="2" justify="end">
+                                                <Button size="sm" variant="outline" onClick={() => openEditModal(d)}>
+                                                    <LuPencil /> Editar
+                                                </Button>
+                                                {isLiftable && (
+                                                    <Button size="sm" colorPalette="orange" variant="outline" onClick={() => openLiftModal(d)}>
+                                                        <LuShieldOff /> Levantar
+                                                    </Button>
+                                                )}
+                                                <Button size="sm" colorPalette="red" variant="outline" onClick={() => handleDelete(d.id, d.motivo)}>
+                                                    <LuTrash2 /> Eliminar
+                                                </Button>
+                                            </HStack>
+                                        </Table.Cell>
                                     </Table.Row>
                                     );
                                 })}
@@ -384,6 +475,114 @@ export function DisciplinesView() {
                     )}
                 </Box>
             </Stack>
+        </DialogRoot>
+
+        {/* Modal Editar Sanción */}
+        <DialogRoot open={isEditOpen} onOpenChange={(e) => setIsEditOpen(e.open)}>
+            <DialogContent>
+                <form onSubmit={handleEditSubmit}>
+                    <DialogHeader>
+                        <DialogTitle>Editar Sanción</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody>
+                        <Stack gap="4">
+                            <Field label="Motivo" required>
+                                <Input
+                                    value={editForm.motivo ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, motivo: e.target.value })}
+                                    required
+                                />
+                            </Field>
+                            <Field label="Fecha de inicio" required>
+                                <Input
+                                    type="date"
+                                    value={editForm.fechaInicio ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, fechaInicio: e.target.value })}
+                                    required
+                                />
+                            </Field>
+                            <Field label="Fecha de fin" required>
+                                <Input
+                                    type="date"
+                                    value={editForm.fechaFin ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, fechaFin: e.target.value })}
+                                    required
+                                />
+                            </Field>
+                            <Field label="">
+                                <Checkbox.Root
+                                    checked={editForm.esSuspensionTotal ?? false}
+                                    onCheckedChange={(details) =>
+                                        setEditForm({ ...editForm, esSuspensionTotal: !!details.checked })
+                                    }
+                                >
+                                    <Checkbox.HiddenInput />
+                                    <Checkbox.Control />
+                                    <Checkbox.Label>Suspensión total</Checkbox.Label>
+                                </Checkbox.Root>
+                            </Field>
+                            {editForm.motivoLevantamiento !== undefined && (
+                                <Field label="Motivo del levantamiento" required>
+                                    <Input
+                                        value={editForm.motivoLevantamiento ?? ""}
+                                        onChange={(e) => setEditForm({ ...editForm, motivoLevantamiento: e.target.value })}
+                                        required
+                                    />
+                                </Field>
+                            )}
+                        </Stack>
+                    </DialogBody>
+                    <DialogFooter>
+                        <DialogActionTrigger asChild>
+                            <Button variant="outline">Cancelar</Button>
+                        </DialogActionTrigger>
+                        <Button type="submit" colorPalette="blue" loading={isEditSubmitting}>
+                            Guardar Cambios
+                        </Button>
+                    </DialogFooter>
+                    <DialogCloseTrigger />
+                </form>
+            </DialogContent>
+        </DialogRoot>
+
+        {/* Modal Levantar Sanción */}
+        <DialogRoot open={isLiftOpen} onOpenChange={(e) => setIsLiftOpen(e.open)}>
+            <DialogContent>
+                <form onSubmit={handleLiftSubmit}>
+                    <DialogHeader>
+                        <DialogTitle>Levantar Sanción</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody>
+                        <Stack gap="4">
+                            <Text color="fg.muted" fontSize="sm">
+                                Ingresá el motivo del levantamiento. Esta acción no se puede deshacer.
+                            </Text>
+                            <Field label="Motivo del levantamiento" required>
+                                <Textarea
+                                    placeholder="Ej. Buen comportamiento sostenido durante 30 días"
+                                    value={liftMotivo}
+                                    onChange={(e) => setLiftMotivo(e.target.value)}
+                                    required
+                                />
+                            </Field>
+                        </Stack>
+                    </DialogBody>
+                    <DialogFooter>
+                        <DialogActionTrigger asChild>
+                            <Button variant="outline">Cancelar</Button>
+                        </DialogActionTrigger>
+                        <Button
+                            type="submit"
+                            colorPalette="orange"
+                            loading={isLiftSubmitting}
+                            disabled={!liftMotivo.trim()}
+                        >
+                            Confirmar Levantamiento
+                        </Button>
+                    </DialogFooter>
+                    <DialogCloseTrigger />
+                </form>
+            </DialogContent>
         </DialogRoot>
         </>
     );

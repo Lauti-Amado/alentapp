@@ -23,7 +23,7 @@ Permitir a los administrativos eliminar un certificado médico del sistema perma
 
 - El sistema debe pedir una confirmación explícita antes de proceder con el borrado.
 - El sistema debe validar que el certificado médico exista antes de intentar borrarlo.
-- El sistema debe corroborar si el certificado a eliminar es el último del cliente (es decir, el que tenga 'esta_valido = true'). Si es el último, debe al anterior asignarle a su atributo 'esta_validado' con 'true'. Esto para determinar que ahora el certificado médico vigente del socio es ahora el anterior al que fue borrad.
+- El sistema debe corroborar si el certificado a eliminar es el último del cliente (es decir, el que tenga 'esta_valido = true'). Si es el último, debe al anterior asignarle a su atributo 'esta_validado' con 'true'. Esto para determinar que ahora el certificado médico vigente del socio es ahora el anterior al que fue borrado.
 - El sistema debe realizar un borrado físico de la base de datos (hard delete).
 - Si el borrado es exitoso, la tabla debe actualizarse automáticamente.
 
