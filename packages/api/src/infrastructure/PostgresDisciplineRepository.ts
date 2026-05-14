@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/client/client.js';
 import { IDisciplineRepository } from '../domain/DisciplineRepository.js';
-import { DisciplineDTO, CreateDisciplineRequest } from '@alentapp/shared';
+import { DisciplineDTO, CreateDisciplineRequest, UpdateDisciplineRequest } from '@alentapp/shared';
 
 if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL environment variable is not set');
@@ -56,6 +56,29 @@ export class PostgresDisciplineRepository implements IDisciplineRepository {
         });
 
         return discipline ? this.mapToDTO(discipline) : null;
+    }
+
+    async findById(id: string): Promise<DisciplineDTO | null> {
+        const discipline = await prisma.discipline.findUnique({
+            where: { id },
+        });
+
+        return discipline ? this.mapToDTO(discipline) : null;
+    }
+
+    async update(id: string, data: UpdateDisciplineRequest): Promise<DisciplineDTO> {
+        const discipline = await prisma.discipline.update({
+            where: { id },
+            data: {
+                ...(data.motivo !== undefined && { motivo: data.motivo }),
+                ...(data.fechaInicio !== undefined && { fechaInicio: new Date(data.fechaInicio) }),
+                ...(data.fechaFin !== undefined && { fechaFin: new Date(data.fechaFin) }),
+                ...(data.esSuspensionTotal !== undefined && { esSuspensionTotal: data.esSuspensionTotal }),
+                ...(data.motivoLevantamiento !== undefined && { motivoLevantamiento: data.motivoLevantamiento }),
+            },
+        });
+
+        return this.mapToDTO(discipline);
     }
 
     private mapToDTO(discipline: DBDiscipline): DisciplineDTO {
