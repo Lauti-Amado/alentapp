@@ -6,4 +6,5 @@ import { LockerDTO, CreateLockerRequest } from '@alentapp/shared';
 export interface LockerRepository {
     create(data: CreateLockerRequest): Promise<LockerDTO>;
     findByNumero(numero: number): Promise<LockerDTO | null>;
+    findAll(): Promise<LockerDTO[]>; // <-- AGREGAR ESTO
 }

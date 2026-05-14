@@ -1,11 +1,22 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { CreateLocker } from '../application/CreateLocker.js';
+import { GetLockers } from '../application/GetLockers.js';
 import { CreateLockerRequest } from '@alentapp/shared';
 
 export class LockerController {
     constructor(
         private readonly createLocker: CreateLocker,
+        private readonly getLockersUseCase: GetLockers
     ) {}
+
+    async getAll(_request: FastifyRequest, reply: FastifyReply) {
+        try {
+            const lockers = await this.getLockersUseCase.execute();
+            return reply.status(200).send({ data: lockers });
+        } catch (error: any) {
+            return reply.status(500).send({ error: "Error al obtener los lockers" });
+        }
+    }
 
     async create(
         request: FastifyRequest<{ Body: CreateLockerRequest }>,

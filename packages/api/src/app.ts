@@ -5,6 +5,7 @@ import { PostgresLockerRepository } from './infrastructure/PostgresLockerReposit
 import { PostgresDisciplineRepository } from './infrastructure/PostgresDisciplineRepository.js';
 import { MemberValidator } from './domain/services/MemberValidator.js';
 import { CreateLocker } from './application/CreateLocker.js';
+import { GetLockers } from './application/GetLockers.js';
 import { CreateDisciplineUseCase } from './application/CreateDisciplineUseCase.js';
 import { GetDisciplinesUseCase } from './application/GetDisciplinesUseCase.js';
 import { CreateMemberUseCase } from './application/NewMemberUseCase.js';
@@ -47,6 +48,7 @@ export function buildApp() {
     const updateMemberUseCase = new UpdateMemberUseCase(memberRepo, memberValidator);
     const deleteMemberUseCase = new DeleteMemberUseCase(memberRepo);
     const createLockerUseCase = new CreateLocker(lockerRepo);
+    const getLockersUseCase = new GetLockers(lockerRepo);
     const createDisciplineUseCase = new CreateDisciplineUseCase(disciplineRepo, memberRepo);
     const getDisciplinesUseCase = new GetDisciplinesUseCase(disciplineRepo);
 
@@ -59,7 +61,8 @@ export function buildApp() {
     );
 
     const lockerController = new LockerController(
-        createLockerUseCase
+        createLockerUseCase,
+        getLockersUseCase
     );
 
     const disciplineController = new DisciplineController(
@@ -75,6 +78,7 @@ export function buildApp() {
     server.delete('/api/v1/socios/:id', memberController.delete.bind(memberController));
     //Locker
     server.post('/api/v1/lockers', lockerController.create.bind(lockerController));
+    server.get('/api/v1/lockers', lockerController.getAll.bind(lockerController));
     //Discipline
     server.get('/api/v1/disciplines', disciplineController.getAll.bind(disciplineController));
     server.post('/api/v1/disciplines', disciplineController.create.bind(disciplineController));
