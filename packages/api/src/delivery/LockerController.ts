@@ -2,11 +2,14 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { CreateLocker } from '../application/CreateLocker.js';
 import { GetLockers } from '../application/GetLockers.js';
 import { CreateLockerRequest } from '@alentapp/shared';
+import { UpdateLocker } from '../application/UpdateLocker.js';
+import { UpdateLockerRequest } from '../../../shared/index.js';
 
 export class LockerController {
     constructor(
         private readonly createLocker: CreateLocker,
-        private readonly getLockersUseCase: GetLockers
+        private readonly getLockersUseCase: GetLockers,
+        private readonly updateLockerUseCase: UpdateLocker
     ) {}
 
     async getAll(_request: FastifyRequest, reply: FastifyReply) {
@@ -41,6 +44,17 @@ export class LockerController {
 
             // Error interno (BD caída, etc)
             return reply.status(500).send({ error: "Error interno, reintente más tarde" });
+        }
+    }
+
+    async update(request: FastifyRequest<{ Params: { id: string }, Body: UpdateLockerRequest }>, reply: FastifyReply) {
+        try {
+            const result = await this.updateLockerUseCase.execute(request.params.id, request.body);
+            return reply.status(200).send({ data: result });
+        } catch (error: any) {
+            const status = error.status || 500;
+            const message = error.message || "Error interno, reintente más tarde";
+            return reply.status(status).send({ error: message });
         }
     }
 }

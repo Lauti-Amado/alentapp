@@ -50,6 +50,13 @@ export interface CreateLockerRequest {
     numero: number;
     ubicacion: string;
 }
+
+export interface UpdateLockerRequest {
+    numero?: number;
+    estado?: LockerStatus;
+    ubicacion?: string;
+    member_id?: string | null;
+}
 // ==========================================
 // Discipline
 // ==========================================
