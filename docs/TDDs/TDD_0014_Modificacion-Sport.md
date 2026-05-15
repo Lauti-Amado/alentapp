@@ -23,9 +23,8 @@ Permitir a los administradores corregir o modificar la información de un deport
 
 ### Criterios de Aceptación
 - El sistema debe permitir actualizar los campos de cupo maximo y descripcion.
-- El sistema debe impedir que se modifique el nombre del Deporte.
+- El sistema debe impedir que se modifiquen los campos de nombre del Deporte, precio adicional y requerimiento de certificado medico.
 - El sistema debe validar que el cupo máximo sea un numero entero mayor a cero.
-- El sistema debe validar que el valor de cupo maximo no sea inferior a la cantidad de inscripciones ya registradas para ese deporte.
 - El sistema debe validar que la descripción no supere los 255 caracteres.
 - Si la edición es correcta, debe retornar los nuevos datos del deporte actualizados.
 
@@ -44,7 +43,7 @@ Se utilizará el paquete compartido para definir el cuerpo de la petición. Los 
 
 ### Componentes de Arquitectura Hexagonal
 1. Puerto: ```SportRepository``` (Interfaz que define el método update (id, data)).
-2. Servicio de Dominio: ```SportValidator``` (Encargado de reutilizar validaciones de Cupo_Maximo).
+2. Servicio de Dominio: ```SportValidator``` (Encargado de reutilizar validaciones de Cupo_Maximo y Descripcion).
 3. Casos de Uso: ```UpdateSportUseCase``` (Orquesta la validacion y llama al repositorio).
 4. Adaptador de Salida: ```PostgresSportRepository``` (Actualizacion usando el método update de Prisma).
 5. Adaptador de Entrada: ```SportController``` (Ruta HTTP que extrae id de la URL y mapea excepciones a códigos HTTP).
@@ -58,15 +57,14 @@ Se utilizará el paquete compartido para definir el cuerpo de la petición. Los 
 | Escenario actual                               | Resultado Esperado	                                                                      | Codigo HTTP               |
 |------------------------------------------------|------------------------------------------------------------------------------------------|---------------------------|
 | Deporte inexistente                            |	Mensaje: “El deporte no existe”	                                                        | 400 Bad Request           |
-| Cupos_Maximo invalido                          |	Mensaje: “El cupo máximo debe ser un numero entero mayor a cero"                        | 400 Bad Request           |
-| Cupo Maximo menor a  inscripciones existentes	 |  Mensaje: “El cupo máximo no puede ser menor a la cantidad de inscripciones registradas” |	409 Conflict              |
+| Cupos_Maximo invalido                          |	Mensaje: “El cupo máximo debe ser un numero entero mayor a cero"                        | 400 Bad Request           |             |
 | Descripcion demasiado larga                    |  Mensaje: “La descripción no puede superar los 255 caracteres”                           | 400 Bad Request           |
 | Error de Conexión a DB	                       |  Mensaje: “Error interno, reintente mas tarde”	                                          | 500 Internal Server Error |          
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Plan de Implementación
 
-1. Actualizar las interfaces en el paquete ```@alentapp/shared``` con validaciones Zod ```(UpdateSportRequest)```.
+1. Actualizar las interfaces en el paquete `@alentapp/shared` (`UpdateSportRequest`).
 2. Ampliar el ```SportRepository``` con el método update.
 3. Implementar la lógica en ```SportMemberUseCase``` utilizando el ```SportValidator``` centralizado.
 4. Crear la ruta ```PUT``` en el controlador y enlazarla a la app de Fastify.
