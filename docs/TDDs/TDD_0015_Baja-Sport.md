@@ -19,7 +19,7 @@ Permitir a los administrativos dar de baja permanentemente a un deporte del sist
 ### Criterios de Aceptación: 
 - El sistema debe pedir una confirmación explicita (advertencia visual) antes de proceder con el borrado.
 - El sistema debe validar que el deporte exista antes de intentar borrarlo.
-- El sistema debe realizar un borrado físico de la base de datos (hard delete), eliminando también todas las inscripciones asociadas al deporte.
+- El sistema debe realizar un borrado físico de la base de datos (hard delete).
 - Si el borrado es exitoso, la tabla debe actualizarse automáticamente. 
 
 ## Diseño Técnico (RFC)
