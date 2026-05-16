@@ -12,7 +12,7 @@ import {
   Center,
   Input
 } from "@chakra-ui/react";
-import { LuPlus, LuPencil, LuRefreshCw, LuSearch, LuX } from "react-icons/lu";
+import { LuPlus, LuPencil, LuRefreshCw, LuSearch, LuX, LuTrash2 } from "react-icons/lu";
 import { useEffect, useState, useMemo } from "react";
 import { lockersService } from "../services/lockers";
 import { membersService } from "../services/members";
@@ -130,6 +130,17 @@ export function Lockers() {
   const handleRemoveMember = () => {
     setFormData(prev => ({ ...prev, member_id: null, estado: 'Disponible' }));
     setLocalError(null);
+  };
+
+  const handleDeleteLocker = async (id: string, numero: number) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el locker #${numero}? Esta acción no se puede deshacer.`)) {
+      try {
+        await lockersService.delete(id);
+        fetchData();
+      } catch (err: any) {
+        alert(err.message || "Error al eliminar el locker");
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -374,13 +385,18 @@ export function Lockers() {
                     <Table.Cell color="fg.muted" fontWeight={locker.member_id ? "medium" : "normal"}>
                       {getMemberName(locker.member_id)}
                     </Table.Cell>
+                    
                     <Table.Cell textAlign="end">
                       <HStack gap="2" justify="flex-end">
                         <IconButton variant="ghost" size="sm" aria-label="Editar locker" onClick={() => openEditModal(locker)}>
                           <LuPencil />
                         </IconButton>
+                        <IconButton variant="ghost" size="sm" colorPalette="red" aria-label="Eliminar locker" onClick={() => handleDeleteLocker(locker.id, locker.numero)}>
+                          <LuTrash2 />
+                        </IconButton>
                       </HStack>
                     </Table.Cell>
+
                   </Table.Row>
                 ))}
               </Table.Body>
