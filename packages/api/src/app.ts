@@ -7,6 +7,7 @@ import { MemberValidator } from './domain/services/MemberValidator.js';
 import { CreateLocker } from './application/CreateLocker.js';
 import { GetLockers } from './application/GetLockers.js';
 import { UpdateLocker } from './application/UpdateLocker.js';
+import { DeleteLocker } from './application/DeleteLocker.js';
 import { CreateDisciplineUseCase } from './application/CreateDisciplineUseCase.js';
 import { GetDisciplinesUseCase } from './application/GetDisciplinesUseCase.js';
 import { UpdateDisciplineUseCase } from './application/UpdateDisciplineUseCase.js';
@@ -50,9 +51,12 @@ export function buildApp() {
     const getMemberByDniUseCase = new GetMemberByDniUseCase(memberRepo);
     const updateMemberUseCase = new UpdateMemberUseCase(memberRepo, memberValidator);
     const deleteMemberUseCase = new DeleteMemberUseCase(memberRepo);
+    
     const createLockerUseCase = new CreateLocker(lockerRepo);
     const getLockersUseCase = new GetLockers(lockerRepo);
     const updateLockerUseCase = new UpdateLocker(lockerRepo);
+    const deleteLockerUseCase = new DeleteLocker(lockerRepo);
+
     const createDisciplineUseCase = new CreateDisciplineUseCase(disciplineRepo, memberRepo);
     const getDisciplinesUseCase = new GetDisciplinesUseCase(disciplineRepo);
     const updateDisciplineUseCase = new UpdateDisciplineUseCase(disciplineRepo);
@@ -69,7 +73,8 @@ export function buildApp() {
     const lockerController = new LockerController(
         createLockerUseCase,
         getLockersUseCase,
-        updateLockerUseCase
+        updateLockerUseCase,
+        deleteLockerUseCase
     );
 
     const disciplineController = new DisciplineController(

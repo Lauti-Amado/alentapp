@@ -1,16 +1,16 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { CreateLocker } from '../application/CreateLocker.js';
 import { GetLockers } from '../application/GetLockers.js';
-import { CreateLockerRequest } from '@alentapp/shared';
 import { UpdateLocker } from '../application/UpdateLocker.js';
-import { UpdateLockerRequest } from '../../../shared/index.js';
+import { DeleteLocker } from '../application/DeleteLocker.js';
+import { CreateLockerRequest, UpdateLockerRequest } from '@alentapp/shared';
 
 export class LockerController {
-    [x: string]: any;
     constructor(
         private readonly createLocker: CreateLocker,
         private readonly getLockersUseCase: GetLockers,
-        private readonly updateLockerUseCase: UpdateLocker
+        private readonly updateLockerUseCase: UpdateLocker,
+        private readonly deleteLockerUseCase: DeleteLocker
     ) {}
 
     async getAll(_request: FastifyRequest, reply: FastifyReply) {
@@ -61,7 +61,7 @@ export class LockerController {
 
     async delete(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
         try {
-            await this.deleteLocker.execute(request.params.id);
+            await this.deleteLockerUseCase.execute(request.params.id); 
             return reply.status(204).send();
         } catch (error: any) {
             const status = error.status || 500;
