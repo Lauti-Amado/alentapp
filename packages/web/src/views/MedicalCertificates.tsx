@@ -70,7 +70,7 @@ export function MedicalCertificatesView() {
         setIsLiftOpen(true);
     };
 
-    const fetchDisciplines = async () => {
+    const fetchMedicalCertificates = async () => {
         setIsLoading(true);
         setListError(null);
         try {
@@ -273,7 +273,7 @@ export function MedicalCertificatesView() {
                                 loading={isSubmitting}
                                 disabled={!foundMember}
                             >
-                                Registrar Sanción
+                                Registrar Certificado Médico
                             </Button>
                         </DialogFooter>
                         <DialogCloseTrigger />
@@ -320,7 +320,7 @@ export function MedicalCertificatesView() {
                         <Center h="200px">
                             <Stack align="center" gap="4">
                                 <Spinner size="xl" color="blue.500" />
-                                <Text color="fg.muted">Cargando sanciones...</Text>
+                                <Text color="fg.muted">Cargando certificados médicos...</Text>
                             </Stack>
                         </Center>
                     ) : filteredMedicalCertificate.length === 0 ? (
@@ -336,44 +336,24 @@ export function MedicalCertificatesView() {
                                     <Table.ColumnHeader py="4">Socio</Table.ColumnHeader>
                                     <Table.ColumnHeader py="4">Fecha Emisión</Table.ColumnHeader>
                                     <Table.ColumnHeader py="4">Fecha Vencimiento</Table.ColumnHeader>
-                                    <Table.ColumnHeader py="4">Está validada</Table.ColumnHeader>
+                                    <Table.ColumnHeader py="4">Está validado</Table.ColumnHeader>
                                     <Table.ColumnHeader py="4">Licencia médico</Table.ColumnHeader>
                                     <Table.ColumnHeader py="4" textAlign="end">Acciones</Table.ColumnHeader>
                                 </Table.Row>
                             </Table.Header>
-                            <Table.Body>
-                                {filteredMedicalCertificate.map((d) => {
-                                    const isLiftable = d.motivoLevantamiento === null && new Date(d.fechaFin) > new Date();
+                            <Table.Body>3
+                                {filteredMedicalCertificate.map((m) => {
                                     return (
-                                    <Table.Row key={d.id} _hover={{ bg: "bg.muted/30" }}>
-                                        <Table.Cell fontWeight="medium" color="fg.emphasized">{membersMap.get(d.memberId)?.name ?? d.memberId}</Table.Cell>
-                                        <Table.Cell fontWeight="semibold" color="fg.emphasized">{d.motivo}</Table.Cell>
-                                        <Table.Cell color="fg.muted">{formatDate(d.fechaInicio)}</Table.Cell>
-                                        <Table.Cell color="fg.muted">{formatDate(d.fechaFin)}</Table.Cell>
-                                        <Table.Cell>
-                                            <Badge colorPalette={d.esSuspensionTotal ? "red" : "orange"}>
-                                                {d.esSuspensionTotal ? "Si" : "No"}
-                                            </Badge>
-                                        </Table.Cell>
-                                        <Table.Cell>
-                                            {d.motivoLevantamiento ? (
-                                                <Badge colorPalette="green">Levantada</Badge>
-                                            ) : new Date(d.fechaFin) <= new Date() ? (
-                                                <Badge colorPalette="gray">Caducada</Badge>
-                                            ) : (
-                                                <Badge colorPalette="red">Vigente</Badge>
-                                            )}
-                                        </Table.Cell>
+                                    <Table.Row key={m.id} _hover={{ bg: "bg.muted/30" }}>
+                                        <Table.Cell fontWeight="medium" color="fg.emphasized">{membersMap.get(m.memberId)?.name ?? m.memberId}</Table.Cell>
+                                        <Table.Cell color="fg.muted">{formatDate(m.fecha_emision)}</Table.Cell>
+                                        <Table.Cell color="fg.muted">{formatDate(m.fecha_vencimiento)}</Table.Cell>
+                                        <Table.Cell fontWeight="semibold" color="fg.emphasized">{m.licencia_doctor}</Table.Cell>
                                         <Table.Cell textAlign="end">
                                             <HStack gap="2" justify="end">
                                                 <Button size="sm" variant="outline" onClick={() => openEditModal(d)}>
                                                     <LuPencil /> Editar
                                                 </Button>
-                                                {isLiftable && (
-                                                    <Button size="sm" colorPalette="orange" variant="outline" onClick={() => openLiftModal(d)}>
-                                                        <LuShieldOff /> Levantar
-                                                    </Button>
-                                                )}
                                                 <Button size="sm" colorPalette="red" variant="outline" onClick={() => handleDelete(d.id, d.motivo)}>
                                                     <LuTrash2 /> Eliminar
                                                 </Button>
