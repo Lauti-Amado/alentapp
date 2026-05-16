@@ -3,7 +3,7 @@ import cors from '@fastify/cors';
 import { PostgresMemberRepository } from './infrastructure/PostgresMemberRepository.js';
 import { PostgresLockerRepository } from './infrastructure/PostgresLockerRepository.js';
 import { PostgresDisciplineRepository } from './infrastructure/PostgresDisciplineRepository.js';
-import { PostgresMedicalCertificateRepository } from './infrastructure/PostgresMedicalCertificateRepository.js'
+import { PostgresMedicalCertificateRepository } from './infrastructure/PostgresMedicalCertificateRepository.js';
 import { MemberValidator } from './domain/services/MemberValidator.js';
 import { CreateLocker } from './application/CreateLocker.js';
 import { GetLockers } from './application/GetLockers.js';
@@ -18,7 +18,7 @@ import { GetMembersUseCase } from './application/GetMembersUseCase.js';
 import { GetMemberByDniUseCase } from './application/GetMemberByDniUseCase.js';
 import { UpdateMemberUseCase } from './application/UpdateMemberUseCase.js';
 import { DeleteMemberUseCase } from './application/DeleteMemberUseCase.js';
-import { CreateMedicalCertificateUseCase, CreateMedicalCertificateUseCase } from './application/CreateMedicalCertificateUseCase.js';
+import { CreateMedicalCertificateUseCase } from './application/CreateMedicalCertificateUseCase.js';
 import { GetMedicalCertificatesUseCase } from './application/GetMedicalCertificatesUseCase.js';
 import { MemberController } from './delivery/MemberController.js';
 import { LockerController } from './delivery/LockerController.js';
@@ -67,7 +67,7 @@ export function buildApp() {
     const updateDisciplineUseCase = new UpdateDisciplineUseCase(disciplineRepo);
     const deleteDisciplineUseCase = new DeleteDisciplineUseCase(disciplineRepo);
 
-    const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo);
+    const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
     const getMedicalCertificatesUseCase = new GetMedicalCertificatesUseCase(medicalCertificateRepo);
 
     const memberController = new MemberController(
