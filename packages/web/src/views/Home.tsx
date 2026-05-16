@@ -46,6 +46,13 @@ export function HomeView() {
           to="/disciplines"
           icon={LuBan}
         />
+
+        <SectionCard 
+          title="Certificados médicos"
+          description="Administra los certificados médicos de los socios."
+          to="/medical_certificates"
+          icon={LuBan}
+        />
        
         {/* Future sections can be added here following the same pattern */}
         <Box 
