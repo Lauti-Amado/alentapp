@@ -58,6 +58,18 @@ function Layout() {
                                 Sanciones
                             </Text>
                         </RouterLink>
+                        <RouterLink to="/medical_certificates">
+                            <Text 
+                                fontWeight="semibold" 
+                                fontSize="sm" 
+                                textTransform="uppercase" 
+                                letterSpacing="wider"
+                                color="fg.muted"
+                                _hover={{ color: "blue.500", textDecoration: "none" }}
+                            >
+                                Certificados médicos
+                            </Text>
+                        </RouterLink>
                     </HStack>
                 </Flex>
             </Box>
