@@ -89,6 +89,7 @@ export interface UpdateDisciplineRequest {
 }
 
 
+
 export interface SportDTO {
     id:                   string    
     Nombre :              string
@@ -104,5 +105,26 @@ export interface CreateSportRequest {
     Precio_adicional:     number
     Descripcion:          string
     Require_certificado_medico: boolean;
+}
+
+
+// ==========================================
+// MedicalCertificate
+// ==========================================
+
+export interface MedicalCertificateDTO {
+  id: string;
+  member_id: string;
+  fecha_emision: Date;
+  fecha_vencimiento: Date;
+  esta_validado: boolean;
+  licencia_doctor: string;
+}
+
+export interface CreateMedicalCertificateRequest {
+  member_id: string;
+  fecha_emision: Date;
+  fecha_vencimiento: Date;
+  licencia_doctor: string;
 }
 

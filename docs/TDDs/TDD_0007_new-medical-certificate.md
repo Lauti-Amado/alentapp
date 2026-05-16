@@ -52,7 +52,7 @@ Se utilizará el paquete compartido para definir el cuerpo para el alta de un ce
 ### Componentes de Arquitectura Hexagonal
 
 1. Puerto: MedicalCertificateRepository (Interface en el Dominio).
-2. Caso de Uso: CreateMedicalCertificate (Lógica que verifica si el DNI ya existe antes de llamar al repositorio).
+2. Caso de Uso: CreateMedicalCertificate (Lógica que verifica si existe el member antes de llamar al repositorio).
 4. Adaptador de Salida: `PostgresMedicalCertificateRepository` (Usando el método `create` de Prisma).
 4. Adaptador de Entrada: MedicalCertificateController (Ruta HTTP).
 

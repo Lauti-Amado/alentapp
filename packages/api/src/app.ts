@@ -3,10 +3,12 @@ import cors from '@fastify/cors';
 import { PostgresMemberRepository } from './infrastructure/PostgresMemberRepository.js';
 import { PostgresLockerRepository } from './infrastructure/PostgresLockerRepository.js';
 import { PostgresDisciplineRepository } from './infrastructure/PostgresDisciplineRepository.js';
+import { PostgresMedicalCertificateRepository } from './infrastructure/PostgresMedicalCertificateRepository.js';
 import { MemberValidator } from './domain/services/MemberValidator.js';
 import { CreateLocker } from './application/CreateLocker.js';
 import { GetLockers } from './application/GetLockers.js';
 import { UpdateLocker } from './application/UpdateLocker.js';
+import { DeleteLocker } from './application/DeleteLocker.js';
 import { CreateDisciplineUseCase } from './application/CreateDisciplineUseCase.js';
 import { GetDisciplinesUseCase } from './application/GetDisciplinesUseCase.js';
 import { UpdateDisciplineUseCase } from './application/UpdateDisciplineUseCase.js';
@@ -16,9 +18,12 @@ import { GetMembersUseCase } from './application/GetMembersUseCase.js';
 import { GetMemberByDniUseCase } from './application/GetMemberByDniUseCase.js';
 import { UpdateMemberUseCase } from './application/UpdateMemberUseCase.js';
 import { DeleteMemberUseCase } from './application/DeleteMemberUseCase.js';
+import { CreateMedicalCertificateUseCase } from './application/CreateMedicalCertificateUseCase.js';
+import { GetMedicalCertificatesUseCase } from './application/GetMedicalCertificatesUseCase.js';
 import { MemberController } from './delivery/MemberController.js';
 import { LockerController } from './delivery/LockerController.js';
 import { DisciplineController } from './delivery/DisciplineController.js';
+import { MedicalCertificateController } from './delivery/MedicalCertificateController.js';
 
 export function buildApp() {
     const server = Fastify({
@@ -44,19 +49,26 @@ export function buildApp() {
     const memberValidator = new MemberValidator(memberRepo);
     const lockerRepo = new PostgresLockerRepository();
     const disciplineRepo = new PostgresDisciplineRepository();
+    const medicalCertificateRepo = new PostgresMedicalCertificateRepository();
     
     const createMemberUseCase = new CreateMemberUseCase(memberRepo, memberValidator);
     const getMembersUseCase = new GetMembersUseCase(memberRepo);
     const getMemberByDniUseCase = new GetMemberByDniUseCase(memberRepo);
     const updateMemberUseCase = new UpdateMemberUseCase(memberRepo, memberValidator);
     const deleteMemberUseCase = new DeleteMemberUseCase(memberRepo);
+    
     const createLockerUseCase = new CreateLocker(lockerRepo);
     const getLockersUseCase = new GetLockers(lockerRepo);
     const updateLockerUseCase = new UpdateLocker(lockerRepo);
+    const deleteLockerUseCase = new DeleteLocker(lockerRepo);
+
     const createDisciplineUseCase = new CreateDisciplineUseCase(disciplineRepo, memberRepo);
     const getDisciplinesUseCase = new GetDisciplinesUseCase(disciplineRepo);
     const updateDisciplineUseCase = new UpdateDisciplineUseCase(disciplineRepo);
     const deleteDisciplineUseCase = new DeleteDisciplineUseCase(disciplineRepo);
+
+    const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
+    const getMedicalCertificatesUseCase = new GetMedicalCertificatesUseCase(medicalCertificateRepo);
 
     const memberController = new MemberController(
         createMemberUseCase, 
@@ -69,7 +81,8 @@ export function buildApp() {
     const lockerController = new LockerController(
         createLockerUseCase,
         getLockersUseCase,
-        updateLockerUseCase
+        updateLockerUseCase,
+        deleteLockerUseCase
     );
 
     const disciplineController = new DisciplineController(
@@ -78,6 +91,11 @@ export function buildApp() {
         updateDisciplineUseCase,
         deleteDisciplineUseCase
     );
+
+    const medicalCertificateController = new MedicalCertificateController(
+        createMedicalCertificateUseCase,
+        getMedicalCertificatesUseCase
+    )
 
     //Miembro
     server.get('/api/v1/socios', memberController.getAll.bind(memberController));
@@ -89,11 +107,15 @@ export function buildApp() {
     server.post('/api/v1/lockers', lockerController.create.bind(lockerController));
     server.get('/api/v1/lockers', lockerController.getAll.bind(lockerController));
     server.put('/api/v1/lockers/:id', lockerController.update.bind(lockerController));
+    server.delete('/api/v1/lockers/:id', lockerController.delete.bind(lockerController));
     //Discipline
     server.get('/api/v1/disciplines', disciplineController.getAll.bind(disciplineController));
     server.post('/api/v1/disciplines', disciplineController.create.bind(disciplineController));
     server.put('/api/v1/disciplines/:id', disciplineController.update.bind(disciplineController));
     server.delete('/api/v1/disciplines/:id', disciplineController.delete.bind(disciplineController));
+    //Medical Certificate
+    server.get('/api/v1/medical_certificates', medicalCertificateController.getAll.bind(medicalCertificateController));
+    server.post('/api/v1/medical_certificates', medicalCertificateController.create.bind(medicalCertificateController));
 
     server.get('/', async (req, rep) => {
         rep.status(200).send({ msg: 'asd' })
