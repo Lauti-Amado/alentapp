@@ -11,12 +11,6 @@ export class DeleteLocker {
             throw error;
         }
 
-        if (locker.estado === 'Ocupado' || locker.member_id !== null) {
-            const error = new Error("No se puede eliminar un locker que se encuentra asignado a un socio.");
-            (error as any).status = 400;
-            throw error;
-        }
-
         await this.lockerRepository.delete(id);
     }
 }
