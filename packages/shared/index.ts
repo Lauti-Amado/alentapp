@@ -87,3 +87,22 @@ export interface UpdateDisciplineRequest {
   esSuspensionTotal?: boolean;
   motivoLevantamiento?: string | null;
 }
+
+
+export interface SportDTO {
+    id:                   string    
+    Nombre :              string
+    Cupo_maximo:          number
+    Precio_adicional:     number
+    Descripcion:          string
+    Require_certificado_medico: boolean;
+}
+
+export interface CreateSportRequest { 
+    Nombre:              string
+    Cupo_maximo:          number
+    Precio_adicional:     number
+    Descripcion:          string
+    Require_certificado_medico: boolean;
+}
+
