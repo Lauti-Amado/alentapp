@@ -12,7 +12,7 @@ import {
   Center,
   Input
 } from "@chakra-ui/react";
-import { LuPlus, LuPencil, LuRefreshCw, LuSearch, LuX, LuTrash2 } from "react-icons/lu";
+import { LuPlus, LuPencil, LuRefreshCw, LuSearch, LuTrash2, LuX } from "react-icons/lu";
 import { useEffect, useState, useMemo } from "react";
 import { lockersService } from "../services/lockers";
 import { membersService } from "../services/members";
@@ -94,7 +94,7 @@ export function Lockers() {
   const openCreateModal = () => {
     setEditingLockerId(null);
     setOriginalLocker(null);
-    setFormData({ numero: 0, ubicacion: "", member_id: null });
+    setFormData({ numero: 0, ubicacion: "", member_id: null, estado: "Disponible" });
     setLocalError(null);
     setSearchTerm("");
     setIsDialogOpen(true);
@@ -115,11 +115,14 @@ export function Lockers() {
   };
 
   const handleSelectMember = (member: MemberDTO) => {
-    if (originalLocker && originalLocker.estado !== 'Disponible') {
-      setLocalError("TDD-0011: Solo se pueden asignar lockers que se encuentren previamente en estado 'Disponible'.");
+    const currentState = formData.estado || 'Disponible';
+    
+    if (currentState !== 'Disponible') {
+      setLocalError("Solo se pueden asignar lockers en estado 'Disponible'. Si desea reasignar, primero cambie el estado y/o consulte si no hay una persona alquilando ya este locker.");
       setSearchTerm("");
       return;
     }
+
     setFormData(prev => ({ ...prev, member_id: member.id, estado: 'Ocupado' }));
     setSearchTerm("");
     setLocalError(null);
@@ -130,13 +133,18 @@ export function Lockers() {
     setLocalError(null);
   };
 
-  const handleDeleteLocker = async (id: string, numero: number, memberId: string | null) => {
+  const handleDeleteLocker = async (id: string, numero: number, memberId: string | null, estado: LockerStatus) => {
     let mensajeConfirmacion = `¿Estás seguro de que deseas eliminar permanentemente el locker #${numero}? Esta acción no se puede deshacer.`;
     
     if (memberId) {
       mensajeConfirmacion = `¡ADVERTENCIA CRÍTICA PARA EL INVENTARIO!\n\n` +
                             `El locker #${numero} se encuentra actualmente ASIGNADO a un socio.\n` +
                             `Si lo eliminás, borrarás permanentemente su registro de alquiler.\n\n` +
+                            `¿Estás seguro de que querés proceder con la baja?`;
+    } else if (estado === 'Ocupado') {
+      mensajeConfirmacion = `¡ADVERTENCIA CRÍTICA PARA EL INVENTARIO!\n\n` +
+                            `El locker #${numero} se encuentra actualmente OCUPADO (sin socio registrado en sistema).\n` +
+                            `Si lo eliminás, borrarás permanentemente su registro.\n\n` +
                             `¿Estás seguro de que querés proceder con la baja?`;
     }
 
@@ -157,6 +165,9 @@ export function Lockers() {
     try {
       const dataToSubmit = { ...formData, numero: Number(formData.numero) };
       if (editingLockerId) {
+        if (originalLocker && originalLocker.estado !== 'Disponible' && dataToSubmit.member_id && originalLocker.member_id !== dataToSubmit.member_id) {
+          await lockersService.update(editingLockerId, { ...dataToSubmit, estado: 'Disponible', member_id: null } as UpdateLockerRequest);
+        }
         await lockersService.update(editingLockerId, dataToSubmit as UpdateLockerRequest);
       } else {
         await lockersService.create(dataToSubmit as CreateLockerRequest);
@@ -173,6 +184,12 @@ export function Lockers() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const getMemberName = (id: string | null) => {
+    if (!id) return "-";
+    const member = members.find(m => m.id === id);
+    return member ? `${member.name} (DNI: ${member.dni})` : "Socio Desconocido";
+  };
 
   return (
     <DialogRoot open={isDialogOpen} onOpenChange={(e) => setIsDialogOpen(e.open)}>
@@ -207,7 +224,18 @@ export function Lockers() {
                   </Box>
                 )}
                 <Field label="Número de Locker" required>
-                  <Input type="number" placeholder="Ej. 101" value={formData.numero || ''} onChange={(e) => setFormData({ ...formData, numero: parseInt(e.target.value) || 0 })} required />
+                  <Input 
+                    type="number" 
+                    placeholder="Ej. 101" 
+                    value={formData.numero || ''} 
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value.length <= 10) { 
+                        setFormData({ ...formData, numero: parseInt(value) || 0 });
+                      }
+                    }} 
+                    required 
+                  />
                 </Field>
                 <Field label="Ubicación" required>
                   <Input type="text" placeholder="Ej. Vestuario Masculino" value={formData.ubicacion} onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })} required />
@@ -226,11 +254,16 @@ export function Lockers() {
                       </SelectRoot>
                       {!!formData.member_id && <Text fontSize="xs" color="blue.600" mt="1">El estado está bloqueado en "Ocupado" mientras haya un socio asignado.</Text>}
                     </Field>
-                    <Field label="Socio Asignado (Lupa)">
+                    
+                    <Field label="Socio Asignado">
                       {formData.member_id ? (
-                        <Flex w="full" p="2" borderWidth="1px" borderRadius="md" align="center" justify="space-between" bg="blue.50" borderColor="blue.200">
-                          <Text fontWeight="bold" color="blue.800" fontSize="sm">{members.find(m => m.id === formData.member_id)?.name || "Socio Asignado"}</Text>
-                          <Button size="xs" variant="ghost" colorPalette="red" onClick={handleRemoveMember}><LuX /> Remover</Button>
+                        <Flex w="full" p="2" borderWidth="1px" borderRadius="md" align="center" justify="space-between" bg="bg.muted" borderColor="border.subtle">
+                          <Text fontWeight="bold" color="fg.emphasized" fontSize="sm">
+                            {members.find(m => m.id === formData.member_id)?.name || "Socio Asignado"}
+                          </Text>
+                          <Button size="xs" variant="ghost" colorPalette="red" onClick={handleRemoveMember}>
+                            <LuTrash2 /> Remover
+                          </Button>
                         </Flex>
                       ) : (
                         <Box position="relative" w="full">
@@ -285,7 +318,13 @@ export function Lockers() {
                 {lockers.map((locker) => (
                   <Table.Row key={locker.id} _hover={{ bg: "bg.muted/30" }}>
                     <Table.Cell fontWeight="semibold" color="fg.emphasized">{locker.numero}</Table.Cell>
-                    <Table.Cell color="fg.muted">{locker.ubicacion}</Table.Cell>
+                    
+                    <Table.Cell color="fg.muted" maxW="200px">
+                      <Text truncate title={locker.ubicacion} cursor="help">
+                        {locker.ubicacion}
+                      </Text>
+                    </Table.Cell>
+                    
                     <Table.Cell>
                       <Box display="inline-block" px="2" py="0.5" borderRadius="md" fontSize="xs" fontWeight="bold" bg={locker.estado === 'Disponible' ? 'green.50' : locker.estado === 'Ocupado' ? 'red.50' : 'orange.50'} color={locker.estado === 'Disponible' ? 'green.700' : locker.estado === 'Ocupado' ? 'red.700' : 'orange.700'}>{locker.estado}</Box>
                     </Table.Cell>
@@ -293,7 +332,7 @@ export function Lockers() {
                     <Table.Cell textAlign="end">
                       <HStack gap="2" justify="flex-end">
                         <IconButton variant="ghost" size="sm" aria-label="Editar locker" onClick={() => openEditModal(locker)}><LuPencil /></IconButton>
-                        <IconButton variant="ghost" size="sm" colorPalette="red" aria-label="Eliminar locker" onClick={() => handleDeleteLocker(locker.id, locker.numero, locker.member_id)}><LuTrash2 /></IconButton>
+                        <IconButton variant="ghost" size="sm" colorPalette="red" aria-label="Eliminar locker" onClick={() => handleDeleteLocker(locker.id, locker.numero, locker.member_id, locker.estado)}><LuTrash2 /></IconButton>
                       </HStack>
                     </Table.Cell>
                   </Table.Row>
