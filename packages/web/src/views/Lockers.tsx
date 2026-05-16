@@ -115,17 +115,18 @@ export function Lockers() {
   };
 
   const handleSelectMember = (member: MemberDTO) => {
-    const currentState = formData.estado || 'Disponible';
-    
-    if (currentState !== 'Disponible') {
-      setLocalError("Solo se pueden asignar lockers en estado 'Disponible'. Si desea reasignar, primero cambie el estado y/o consulte si no hay una persona alquilando ya este locker.");
-      setSearchTerm("");
-      return;
-    }
+    setFormData(prev => {
+      const currentState = prev.estado || 'Disponible';
+      
+      if (currentState !== 'Disponible') {
+        setLocalError("Solo se pueden asignar lockers en estado 'Disponible'.");
+        return prev;
+      }
 
-    setFormData(prev => ({ ...prev, member_id: member.id, estado: 'Ocupado' }));
+      setLocalError(null);
+      return { ...prev, member_id: member.id, estado: 'Ocupado' };
+    });
     setSearchTerm("");
-    setLocalError(null);
   };
 
   const handleRemoveMember = () => {
@@ -171,6 +172,7 @@ export function Lockers() {
         await lockersService.update(editingLockerId, dataToSubmit as UpdateLockerRequest);
       } else {
         await lockersService.create(dataToSubmit as CreateLockerRequest);
+        alert("Locker creado con éxito");
       }
       setIsDialogOpen(false);
       fetchData(); 
