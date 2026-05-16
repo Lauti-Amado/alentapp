@@ -1,15 +1,16 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { CreateLocker } from '../application/CreateLocker.js';
 import { GetLockers } from '../application/GetLockers.js';
-import { CreateLockerRequest } from '@alentapp/shared';
 import { UpdateLocker } from '../application/UpdateLocker.js';
-import { UpdateLockerRequest } from '../../../shared/index.js';
+import { DeleteLocker } from '../application/DeleteLocker.js';
+import { CreateLockerRequest, UpdateLockerRequest } from '@alentapp/shared';
 
 export class LockerController {
     constructor(
         private readonly createLocker: CreateLocker,
         private readonly getLockersUseCase: GetLockers,
-        private readonly updateLockerUseCase: UpdateLocker
+        private readonly updateLockerUseCase: UpdateLocker,
+        private readonly deleteLockerUseCase: DeleteLocker
     ) {}
 
     async getAll(_request: FastifyRequest, reply: FastifyReply) {
@@ -51,6 +52,17 @@ export class LockerController {
         try {
             const result = await this.updateLockerUseCase.execute(request.params.id, request.body);
             return reply.status(200).send({ data: result });
+        } catch (error: any) {
+            const status = error.status || 500;
+            const message = error.message || "Error interno, reintente más tarde";
+            return reply.status(status).send({ error: message });
+        }
+    }
+
+    async delete(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+        try {
+            await this.deleteLockerUseCase.execute(request.params.id); 
+            return reply.status(204).send();
         } catch (error: any) {
             const status = error.status || 500;
             const message = error.message || "Error interno, reintente más tarde";
