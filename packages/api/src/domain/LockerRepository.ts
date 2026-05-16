@@ -10,4 +10,5 @@ export interface LockerRepository {
     findAll(): Promise<LockerDTO[]>;
     findById(id: string): Promise<LockerDTO | null>;
     update(id: string, data: Partial<UpdateLockerRequest>): Promise<LockerDTO>;
+    delete(id: string): Promise<void>;
 }
