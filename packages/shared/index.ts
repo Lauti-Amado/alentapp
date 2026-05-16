@@ -87,3 +87,23 @@ export interface UpdateDisciplineRequest {
   esSuspensionTotal?: boolean;
   motivoLevantamiento?: string | null;
 }
+
+// ==========================================
+// MedicalCertificate
+// ==========================================
+
+export interface MedicalCertificateDTO {
+  id: string;
+  member_id: string;
+  fecha_emision: Date;
+  fecha_vencimiento: Date;
+  esta_validado: boolean;
+  licencia_doctor: string;
+}
+
+export interface CreateMedicalCertificateRequest {
+  member_id: string;
+  fecha_emision: Date;
+  fecha_vencimiento: Date;
+  licencia_doctor: string;
+}
