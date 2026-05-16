@@ -20,6 +20,7 @@ import { UpdateMemberUseCase } from './application/UpdateMemberUseCase.js';
 import { DeleteMemberUseCase } from './application/DeleteMemberUseCase.js';
 import { CreateMedicalCertificateUseCase } from './application/CreateMedicalCertificateUseCase.js';
 import { GetMedicalCertificatesUseCase } from './application/GetMedicalCertificatesUseCase.js';
+import { UpdateMedicalCertificateUseCase } from './application/UpdateMedicalCertificateUseCase.js';
 import { MemberController } from './delivery/MemberController.js';
 import { LockerController } from './delivery/LockerController.js';
 import { DisciplineController } from './delivery/DisciplineController.js';
@@ -69,6 +70,7 @@ export function buildApp() {
 
     const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
     const getMedicalCertificatesUseCase = new GetMedicalCertificatesUseCase(medicalCertificateRepo);
+    const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo)
 
     const memberController = new MemberController(
         createMemberUseCase, 
@@ -94,7 +96,8 @@ export function buildApp() {
 
     const medicalCertificateController = new MedicalCertificateController(
         createMedicalCertificateUseCase,
-        getMedicalCertificatesUseCase
+        getMedicalCertificatesUseCase,
+        updateMedicalCertificateUseCase
     )
 
     //Miembro
