@@ -115,7 +115,7 @@ export function buildApp() {
     server.delete('/api/v1/disciplines/:id', disciplineController.delete.bind(disciplineController));
     //Medical Certificate
     server.get('/api/v1/medical_certificates', medicalCertificateController.getAll.bind(medicalCertificateController));
-    server.get('/api/v1/medical_certificates', medicalCertificateController.create.bind(medicalCertificateController));
+    server.post('/api/v1/medical_certificates', medicalCertificateController.create.bind(medicalCertificateController));
 
     server.get('/', async (req, rep) => {
         rep.status(200).send({ msg: 'asd' })
