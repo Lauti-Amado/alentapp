@@ -88,6 +88,26 @@ export interface UpdateDisciplineRequest {
   motivoLevantamiento?: string | null;
 }
 
+
+
+export interface SportDTO {
+    id:                   string    
+    Nombre :              string
+    Cupo_maximo:          number
+    Precio_adicional:     number
+    Descripcion:          string
+    Require_certificado_medico: boolean;
+}
+
+export interface CreateSportRequest { 
+    Nombre:              string
+    Cupo_maximo:          number
+    Precio_adicional:     number
+    Descripcion:          string
+    Require_certificado_medico: boolean;
+}
+
+
 // ==========================================
 // MedicalCertificate
 // ==========================================
@@ -95,15 +115,22 @@ export interface UpdateDisciplineRequest {
 export interface MedicalCertificateDTO {
   id: string;
   member_id: string;
-  fecha_emision: Date;
-  fecha_vencimiento: Date;
+  fecha_emision: string; // ISO Date String (YYYY-MM-DD)
+  fecha_vencimiento: string; // ISO Date String (YYYY-MM-DD)
   esta_validado: boolean;
   licencia_doctor: string;
 }
 
 export interface CreateMedicalCertificateRequest {
   member_id: string;
-  fecha_emision: Date;
-  fecha_vencimiento: Date;
+  fecha_emision: string; // ISO Date String (YYYY-MM-DD)
+  fecha_vencimiento: string; // ISO Date String (YYYY-MM-DD)
   licencia_doctor: string;
+}
+
+export interface UpdateMedicalCertificateRequest {
+  member_id?: string;
+  fecha_emision?: string; // ISO Date String (YYYY-MM-DD)
+  fecha_vencimiento?: string; // ISO Date String (YYYY-MM-DD)
+  licencia_doctor?: string;
 }
