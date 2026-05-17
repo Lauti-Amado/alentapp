@@ -1,6 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/client/client.js';
-import { CreatePaymentRequest, PaymentDTO, PaymentStatus } from '@alentapp/shared';
+import { CreatePaymentRequest, PaymentDTO, PaymentStatus, UpdatePaymentRequest } from '@alentapp/shared';
 import { PaymentRepository } from '../domain/PaymentRepository.js';
 
 if (!process.env.DATABASE_URL) {
@@ -46,6 +46,34 @@ export class PostgresPaymentRepository implements PaymentRepository {
         });
 
         return payments.map((payment) => this.mapToDTO(payment as DBPayment));
+    }
+
+    async findById(id: string): Promise<PaymentDTO | null> {
+        const payment = await prisma.payment.findUnique({
+            where: { id },
+        });
+
+        return payment ? this.mapToDTO(payment as DBPayment) : null;
+    }
+
+    async update(id: string, data: UpdatePaymentRequest): Promise<PaymentDTO> {
+        const payment = await prisma.payment.update({
+            where: { id },
+            data: {
+                monto: data.monto,
+                mes: data.mes,
+                anio: data.anio,
+                estado: data.estado,
+                fecha_vencimiento: data.fecha_vencimiento !== undefined
+                    ? new Date(`${data.fecha_vencimiento}T00:00:00.000Z`)
+                    : undefined,
+                fecha_pago: data.fecha_pago !== undefined
+                    ? new Date(`${data.fecha_pago}T00:00:00.000Z`)
+                    : undefined,
+            },
+        });
+
+        return this.mapToDTO(payment as DBPayment);
     }
 
     private mapToDTO(payment: DBPayment): PaymentDTO {
