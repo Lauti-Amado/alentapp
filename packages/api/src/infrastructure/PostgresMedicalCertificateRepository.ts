@@ -66,7 +66,9 @@ export class PostgresMedicalCertificateRepository implements MedicalCertificateR
     }
 
     async delete(id: string): Promise<void> {
-
+        await prisma.medicalCertificate.delete({
+            where: { id }
+        });
     }
 
     private mapToDTO(medicalCertificate: DBMedicalCertificate): MedicalCertificateDTO {
