@@ -18,7 +18,7 @@ Permitir a los administrativos corregir algun dato puntual sobre los certificado
 - Necesidad: Mantener un registro confiable de cada certificado médico, sin errores que puedan llegar a derivar en malos entendidos. De esta manera, digitalmente se modifica el registro en conflicto sin dejar huellas del error anterior (como sí pasaria si se tachara y se escribiera arriba en una planilla física)
 
 ### Criterios de Aceptación
-- El sistema debe permitir actualizar cualquier cantidad requerida de los campos del socio.
+- El sistema debe permitir actualizar la fecha de emision, la fecha de vencimiento o la licencia del doctor.
 - El sistema debe validar, en caso que se quiera modificar al menos 1 fecha, que las fechas (de emisión y vencimiento) cumplan con su formato adecuado y que la fecha de vencimiento sea mayor que la de emisión.
 - En caso de la edición ser correcta, el sistema retornará los nuevos datos del certificado médico actualizado.
 
@@ -32,7 +32,6 @@ En este paquete se define el formato que debe cumplir la request en el caso de m
 *   Request Body (UpdateMedicalCertificate):
 ```ts
 {
-    memberId?: Int.
     fecha_emision?: Date.
     fecha_vencimiento?: Date.
     licencia_doctor?: String.
@@ -50,15 +49,13 @@ En este paquete se define el formato que debe cumplir la request en el caso de m
 ## Casos de Borde y Errores
 | Escenario                   | Resultado Esperado                            | Código HTTP               |
 | ----------------------------| --------------------------------------------- | ------------------------- |
-| MemberID inexistente     | [Error de miembro no existente]       | 400 Bad Request             |
 | Fecha vencimiento < Fecha emision | [Error de validación de coherencia entre fechas]       | 409 Conflict              |
-| Formato fecha inválida| [Error de validación de formato de fechas]              | 400 Bad Request           |
 | Error de conexión a DB     | Mensaje: "Error interno, reintente más tarde" | 500 Internal Server Error |
 
 ## Plan de Implementación
 
 1. Actualizar las interfaces en el paquete `@alentapp/shared` (`UpdateMedicalCertificateRequest`).
 2. Agregar al `MedicalCertificateRepository` el método `update`.
-3. Implementar la lógica en `UpdateMedicalCertificateUseCase` utilizando el `MedicalCertificateValidator` centralizado.
+3. Implementar la lógica en `UpdateMedicalCertificateUseCase` asegurando la validación de fechas con `date-fns` en el `MedicalCertificateValidator`.
 4. Crear la ruta `PUT` en el controlador y enlazarla a la app de Fastify.
 5. Consumir el endpoint desde el Frontend y reutilizar el modal de creación para permitir la edición.

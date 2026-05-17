@@ -74,6 +74,13 @@ export class PostgresSportRepository implements SportRepository {
             return this.mapToDTO(sport);
         }
 
+         async delete(id: string): Promise<void> {
+        await prisma.sport.delete({
+            where: { id },
+        });
+    }
+
+
     private mapToDTO(sport: DBSport): SportDTO {
         return {
             id: sport.id,

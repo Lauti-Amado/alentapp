@@ -67,19 +67,19 @@ export class SportController {
         }
     }
 
-    async delete(
-        request: FastifyRequest<{ Params: { id: string } }>,
-        reply: FastifyReply,
-    ) {
-        try {
-            const { id } = request.params;
-            await this.deleteSportUseCase.execute(id);
-            return reply.status(204).send(); // No Content
-        } catch (error: unknown) {
-          const message = error instanceof Error ? error.message : 'Error desconocido';
-          return reply.status(400).send({ error: message });
-}
+   async delete(
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply,
+) {
+    try {
+        const { id } = request.params;
+        await this.deleteSportUseCase.execute(id);
+        return reply.status(204).send(); // No Content
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        return reply.status(400).send({ error: message });
     }
+}
     
     async getByName(
         request: FastifyRequest<{ Params: { name: string } }>,

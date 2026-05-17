@@ -32,6 +32,40 @@ export interface UpdateMemberRequest {
   status?: MemberStatus;
 }
 
+// ==========================================
+// Payment
+// ==========================================
+export type PaymentStatus = 'Pendiente' | 'Pagado' | 'Cancelado';
+
+export interface PaymentDTO {
+  id: string; // UUID
+  member_id: string;
+  monto: number;
+  mes: number;
+  anio: number;
+  estado: PaymentStatus;
+  fecha_vencimiento: string; // ISO Date String (YYYY-MM-DD)
+  fecha_pago: string | null; // ISO Date String (YYYY-MM-DD)
+  creado_el: string; // ISO Date String
+  deleted_at: string | null; // ISO Date String
+}
+
+export interface CreatePaymentRequest {
+  member_id: string;
+  monto: number;
+  mes: number;
+  anio: number;
+  fecha_vencimiento: string; // ISO Date String (YYYY-MM-DD)
+}
+
+export interface UpdatePaymentRequest {
+  monto?: number;
+  mes?: number;
+  anio?: number;
+  fecha_vencimiento?: string; // ISO Date String (YYYY-MM-DD)
+  fecha_pago?: string; // ISO Date String (YYYY-MM-DD)
+  estado?: PaymentStatus;
+}
 
 // ==========================================
 // Locker
@@ -57,6 +91,7 @@ export interface UpdateLockerRequest {
     ubicacion?: string;
     member_id?: string | null;
 }
+
 // ==========================================
 // Discipline
 // ==========================================
@@ -123,16 +158,21 @@ export interface UpdateSportRequest {
 export interface MedicalCertificateDTO {
   id: string;
   member_id: string;
-  fecha_emision: Date;
-  fecha_vencimiento: Date;
-  esta_validado: boolean;
+  fecha_emision: string; // ISO Date String (YYYY-MM-DD)
+  fecha_vencimiento: string; // ISO Date String (YYYY-MM-DD)
+  esta_validada: boolean;
   licencia_doctor: string;
 }
 
 export interface CreateMedicalCertificateRequest {
   member_id: string;
-  fecha_emision: Date;
-  fecha_vencimiento: Date;
+  fecha_emision: string; // ISO Date String (YYYY-MM-DD)
+  fecha_vencimiento: string; // ISO Date String (YYYY-MM-DD)
   licencia_doctor: string;
 }
 
+export interface UpdateMedicalCertificateRequest {
+  fecha_emision?: string; // ISO Date String (YYYY-MM-DD)
+  fecha_vencimiento?: string; // ISO Date String (YYYY-MM-DD)
+  licencia_doctor?: string;
+}

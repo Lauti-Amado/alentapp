@@ -17,7 +17,7 @@ export class LockerController {
         try {
             const lockers = await this.getLockersUseCase.execute();
             return reply.status(200).send({ data: lockers });
-        } catch (error: any) {
+        } catch (error: unknown) {
             return reply.status(500).send({ error: "Error al obtener los lockers" });
         }
     }
@@ -34,13 +34,14 @@ export class LockerController {
                 message: "Locker creado con éxito",
                 data: locker 
             });
-        } catch (error: any) {
-            if (error.message.includes('DUPLICATE_NUMBER')) {
-                return reply.status(409).send({ error: "Ya existe un locker con ese número" });
-            }
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Error interno";
             
-            if (error.message.includes('INVALID_NUMBER')) {
-                return reply.status(400).send({ error: "El número del locker es obligatorio y debe ser válido" });
+            if (errorMessage.includes('Ya existe un locker con ese número')) {
+                return reply.status(409).send({ error: errorMessage });
+            }
+            if (errorMessage.includes('obligatorio y debe ser válido')) {
+                return reply.status(400).send({ error: errorMessage });
             }
 
             // Error interno (BD caída, etc)
@@ -52,21 +53,35 @@ export class LockerController {
         try {
             const result = await this.updateLockerUseCase.execute(request.params.id, request.body);
             return reply.status(200).send({ data: result });
-        } catch (error: any) {
-            const status = error.status || 500;
-            const message = error.message || "Error interno, reintente más tarde";
-            return reply.status(status).send({ error: message });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Error interno";
+
+            if (errorMessage.includes("no existe")) {
+                return reply.status(404).send({ error: errorMessage });
+            }
+            if (errorMessage.includes("Ya existe un locker con ese número")) {
+                return reply.status(409).send({ error: errorMessage });
+            }
+            if (errorMessage.includes("estado Disponible")) {
+                return reply.status(400).send({ error: errorMessage });
+            }
+            
+            return reply.status(500).send({ error: "Error interno, reintente más tarde" });
         }
     }
 
     async delete(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
         try {
-            await this.deleteLockerUseCase.execute(request.params.id); 
+            await this.deleteLockerUseCase.execute(request.params.id);
             return reply.status(204).send();
-        } catch (error: any) {
-            const status = error.status || 500;
-            const message = error.message || "Error interno, reintente más tarde";
-            return reply.status(status).send({ error: message });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Error interno";
+
+            if (errorMessage.includes("no existe")) {
+                return reply.status(404).send({ error: errorMessage });
+            }
+            
+            return reply.status(500).send({ error: "Error interno, reintente más tarde" });
         }
     }
 }

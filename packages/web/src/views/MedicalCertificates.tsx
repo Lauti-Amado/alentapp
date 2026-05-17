@@ -3,7 +3,7 @@ import { LuPencil, LuPlus, LuSearch, LuShieldOff, LuTrash2, LuX } from "react-ic
 import { useState, useEffect } from "react";
 import { medicalCertificatesService } from "../services/medicalCertificates";
 import { membersService } from "../services/members";
-import type { CreateMedicalCertificateRequest, MedicalCertificateDTO, MemberDTO } from "@alentapp/shared";
+import type { CreateMedicalCertificateRequest, UpdateMedicalCertificateRequest, MedicalCertificateDTO, MemberDTO } from "@alentapp/shared";
 import { DialogRoot, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter, DialogActionTrigger, DialogCloseTrigger,} from "../components/ui/dialog";
 import { Field } from "../components/ui/field";
 
@@ -17,7 +17,6 @@ const emptyForm = (): CreateMedicalCertificateRequest => ({
     member_id: "",
     fecha_emision: "",
     fecha_vencimiento: "",
-    esta_validado: true,
     licencia_doctor: "",
 });
 
@@ -55,21 +54,17 @@ export function MedicalCertificatesView() {
     // Filtro de búsqueda de la tabla
     const [filterQuery, setFilterQuery] = useState("");
 
-    const openEditModal = (d: MedicalCertificateDTO) => {
-        setEditingId(d.id);
+    const openEditModal = (m: MedicalCertificateDTO) => {
+        setEditingId(m.id);
         setEditForm({
-            fecha_emision: d.fecha_emision.split("T")[0],
-            fecha_vencimiento: d.fecha_vencimiento.split("T")[0],
-            esta_validado: d.esta_validado,
+            fecha_emision: m.fecha_emision.split("T")[0],
+            fecha_vencimiento: m.fecha_vencimiento.split("T")[0],
+            esta_validada: m.esta_validada,
+            licencia_doctor: m.licencia_doctor,
         });
         setIsEditOpen(true);
     };
-    const openLiftModal = (d: MedicalCertificateDTO) => {
-        setLiftingId(d.id);
-        setLiftMotivo("");
-        setIsLiftOpen(true);
-    };
-
+    
     const fetchMedicalCertificates = async () => {
         setIsLoading(true);
         setListError(null);
@@ -121,10 +116,10 @@ export function MedicalCertificatesView() {
         try {
             const member = await membersService.getByDni(dniInput.trim());
             setFoundMember(member);
-            setFormData((prev) => ({ ...prev, memberId: member.id }));
+            setFormData((prev) => ({ ...prev, member_id: member.id }));
         } catch (err: any) {
             setDniError(err.message || "Socio no encontrado");
-            setFormData((prev) => ({ ...prev, memberId: "" }));
+            setFormData((prev) => ({ ...prev, member_id: "" }));
         } finally {
             setIsSearching(false);
         }
@@ -149,10 +144,29 @@ export function MedicalCertificatesView() {
         }
     };
 
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingId) return;
+        setIsEditSubmitting(true);
+        try {
+            await medicalCertificatesService.update(editingId, {
+                ...editForm,
+                ...(editForm.fecha_emision && { fecha_emision: new Date(editForm.fecha_emision).toISOString() }),
+                ...(editForm.fecha_vencimiento && { fecha_vencimiento: new Date(editForm.fecha_vencimiento).toISOString() }),
+            });
+            setIsEditOpen(false);
+            fetchMedicalCertificates();
+        } catch (err: any) {
+            alert(err.message || "Error al modificar el certificado médico");
+        } finally {
+            setIsEditSubmitting(false);
+        }
+    };
+
     const filteredMedicalCertificate = filterQuery.trim() === ""
         ? medicalCertificates
         : medicalCertificates.filter((m) => {
-              const member = membersMap.get(m.memberId);
+              const member = membersMap.get(m.member_id);
               if (!member) return false;
               const q = filterQuery.toLowerCase();
               return member.name.toLowerCase().includes(q) || member.dni.includes(q);
@@ -326,7 +340,7 @@ export function MedicalCertificatesView() {
                     ) : filteredMedicalCertificate.length === 0 ? (
                         <Center h="200px">
                             <Text color="fg.muted">
-                                {filterQuery.trim() ? "No se encontraron certificados méidocs para el socio buscado." : "No hay certificados médicos registradas."}
+                                {filterQuery.trim() ? "No se encontraron certificados médicos para el socio buscado." : "No hay certificados médicos registradas."}
                             </Text>
                         </Center>
                     ) : (
@@ -336,22 +350,27 @@ export function MedicalCertificatesView() {
                                     <Table.ColumnHeader py="4">Socio</Table.ColumnHeader>
                                     <Table.ColumnHeader py="4">Fecha Emisión</Table.ColumnHeader>
                                     <Table.ColumnHeader py="4">Fecha Vencimiento</Table.ColumnHeader>
-                                    <Table.ColumnHeader py="4">Está validado</Table.ColumnHeader>
+                                    <Table.ColumnHeader py="4">Está validada</Table.ColumnHeader>
                                     <Table.ColumnHeader py="4">Licencia médico</Table.ColumnHeader>
                                     <Table.ColumnHeader py="4" textAlign="end">Acciones</Table.ColumnHeader>
                                 </Table.Row>
                             </Table.Header>
-                            <Table.Body>3
+                            <Table.Body>
                                 {filteredMedicalCertificate.map((m) => {
                                     return (
                                     <Table.Row key={m.id} _hover={{ bg: "bg.muted/30" }}>
-                                        <Table.Cell fontWeight="medium" color="fg.emphasized">{membersMap.get(m.memberId)?.name ?? m.memberId}</Table.Cell>
+                                        <Table.Cell fontWeight="medium" color="fg.emphasized">{membersMap.get(m.member_id)?.name ?? m.member_id}</Table.Cell>
                                         <Table.Cell color="fg.muted">{formatDate(m.fecha_emision)}</Table.Cell>
                                         <Table.Cell color="fg.muted">{formatDate(m.fecha_vencimiento)}</Table.Cell>
+                                        <Table.Cell>
+                                            <Badge colorPalette={m.esta_validada ? "green" : "orange"}>
+                                                {m.esta_validada ? "Si" : "No"}
+                                            </Badge>
+                                        </Table.Cell>
                                         <Table.Cell fontWeight="semibold" color="fg.emphasized">{m.licencia_doctor}</Table.Cell>
                                         <Table.Cell textAlign="end">
                                             <HStack gap="2" justify="end">
-                                                <Button size="sm" variant="outline" onClick={() => openEditModal(d)}>
+                                                <Button size="sm" variant="outline" onClick={() => openEditModal(m)}>
                                                     <LuPencil /> Editar
                                                 </Button>
                                                 <Button size="sm" colorPalette="red" variant="outline" onClick={() => handleDelete(d.id, d.motivo)}>
@@ -367,6 +386,53 @@ export function MedicalCertificatesView() {
                     )}
                 </Box>
             </Stack>
+        </DialogRoot>
+
+        {/* Modal Editar Certificado Médico */}
+        <DialogRoot open={isEditOpen} onOpenChange={(e) => setIsEditOpen(e.open)}>
+            <DialogContent>
+                <form onSubmit={handleEditSubmit}>
+                    <DialogHeader>
+                        <DialogTitle>Editar Sanción</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody>
+                        <Stack gap="4">
+                            <Field label="Fecha de emision" required>
+                                <Input
+                                    type="date"
+                                    value={editForm.fecha_emision ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, fecha_emision: e.target.value })}
+                                    required
+                                />
+                            </Field>
+                            <Field label="Fecha de vencimiento" required>
+                                <Input
+                                    type="date"
+                                    value={editForm.fecha_vencimiento ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, fecha_vencimiento: e.target.value })}
+                                    required
+                                />
+                            </Field>
+                            <Field label="Licencia médico" required>
+                                <Input
+                                    value={editForm.licencia_doctor ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, licencia_doctor: e.target.value })}
+                                    required
+                                />
+                            </Field>
+                        </Stack>
+                    </DialogBody>
+                    <DialogFooter>
+                        <DialogActionTrigger asChild>
+                            <Button variant="outline">Cancelar</Button>
+                        </DialogActionTrigger>
+                        <Button type="submit" colorPalette="blue" loading={isEditSubmitting}>
+                            Guardar Cambios
+                        </Button>
+                    </DialogFooter>
+                    <DialogCloseTrigger />
+                </form>
+            </DialogContent>
         </DialogRoot>
 
         </>
