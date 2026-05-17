@@ -5,7 +5,6 @@ import { UpdateMedicalCertificateRequest } from '../../../../shared/index.js';
 
 export class MedicalCertificateValidator {
     constructor(
-        private readonly memberRepo: MemberRepository,
         private readonly medicalCertificateRepo: MedicalCertificateRepository
     ) {}
 

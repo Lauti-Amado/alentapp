@@ -22,10 +22,11 @@ import { DeleteMemberUseCase } from './application/DeleteMemberUseCase.js';
 import { CreateMedicalCertificateUseCase } from './application/CreateMedicalCertificateUseCase.js';
 import { GetMedicalCertificatesUseCase } from './application/GetMedicalCertificatesUseCase.js';
 import { UpdateMedicalCertificateUseCase } from './application/UpdateMedicalCertificateUseCase.js';
+import { MedicalCertificateController } from './delivery/MedicalCertificateController.js';
+import { MedicalCertificateValidator } from './domain/services/MedicalCertificateValidator.js';
 import { MemberController } from './delivery/MemberController.js';
 import { LockerController } from './delivery/LockerController.js';
 import { DisciplineController } from './delivery/DisciplineController.js';
-import { MedicalCertificateController } from './delivery/MedicalCertificateController.js';
 import { CreateSportUseCase} from './application/CreateSportUseCase.js';
 import { GetSportsUseCase } from './application/GetSportsUseCase.js';
 import { GetSportByNameUseCase } from './application/GetSportByNameUseCase.js';
@@ -82,9 +83,10 @@ export function buildApp() {
     const getSportByNameUseCase = new GetSportByNameUseCase(sportRepo);
     const updateSportUseCase = new UpdateSportUseCase(sportRepo);
 
+    const medicalCertificateValidator = new MedicalCertificateValidator(medicalCertificateRepo)
     const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
     const getMedicalCertificatesUseCase = new GetMedicalCertificatesUseCase(medicalCertificateRepo);
-    const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo)
+    const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo, medicalCertificateValidator)
 
     const memberController = new MemberController(
         createMemberUseCase, 
