@@ -143,7 +143,7 @@ export interface MedicalCertificateDTO {
   member_id: string;
   fecha_emision: string; // ISO Date String (YYYY-MM-DD)
   fecha_vencimiento: string; // ISO Date String (YYYY-MM-DD)
-  esta_validado: boolean;
+  esta_validada: boolean;
   licencia_doctor: string;
 }
 
