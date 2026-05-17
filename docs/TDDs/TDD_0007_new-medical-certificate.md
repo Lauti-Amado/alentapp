@@ -52,16 +52,16 @@ Se utilizará el paquete compartido para definir el cuerpo para el alta de un ce
 ### Componentes de Arquitectura Hexagonal
 
 1. Puerto: MedicalCertificateRepository (Interface en el Dominio).
-2. Caso de Uso: CreateMedicalCertificate (Lógica que verifica si el DNI ya existe antes de llamar al repositorio).
+2. Caso de Uso: CreateMedicalCertificate (Lógica que verifica si existe el member antes de llamar al repositorio).
 4. Adaptador de Salida: `PostgresMedicalCertificateRepository` (Usando el método `create` de Prisma).
 4. Adaptador de Entrada: MedicalCertificateController (Ruta HTTP).
 
 ## Casos de Borde y Errores
 | Escenario                   | Resultado Esperado                            | Código HTTP               |
 | ----------------------------| --------------------------------------------- | ------------------------- |
-| Fecha vencimiento < Fecha emision | [Error de validación de coherencia de fechas]       | 409 Conflict              |
-| Formato fecha inválida | [Error de validación de formato]              | 400 Bad Request           |
-| MemberID no encontrado | [Error de member no existente]              | 400 Bad Request           |
+| Fecha vencimiento < Fecha emision | [Error de validación de coherencia entre fechas]       | 409 Conflict              |
+| Formato fecha inválida | [Error de validación de formato de fechas]              | 400 Bad Request           |
+| MemberID no encontrado | [Error de miembro  no existente]              | 400 Bad Request           |
 | Error de conexión a DB     | Mensaje: "Error interno, reintente más tarde" | 500 Internal Server Error |
 
 ## Plan de Implementación

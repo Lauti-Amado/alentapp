@@ -2,61 +2,60 @@
 id: 18
 estado: Propuesto
 autor: Ulises Mateo Bucchino
-fecha: 2026-05-01
-titulo: Levantamiento de Sanciones (Baja Lógica)
+fecha: 2026-05-06
+titulo: Eliminación de Sanciones
 ---
 
-# TDD-0018: Levantamiento de Sanciones (Baja Lógica)
+# TDD-0018: Eliminación de Sanciones
 
 ## Contexto de Negocio (PRD)
 
 ### Objetivo
-Permitir a los administrativos levantar una sanción antes de su vencimiento original mediante una baja lógica. No se permite el borrado físico por motivos de auditoría, sino que se rehabilita al socio adelantando la fecha de fin al momento actual.
+Permitir la eliminación física y permanente (Hard Delete) de un registro de sanción. Esta funcionalidad es estrictamente para corregir errores humanos graves en la carga de datos (EJ. Sancionar al socio equivocado) y no debe usarse como mecanismo para "perdonar" (lo cual se gestiona mediante el levantamiento en el TDD-0017).
 
 ### User Persona
 - Nombre: José (Administrativo).
-- Necesidad: Habilitar de forma inmediata a un socio al que se le perdonó la sanción, sin perder el historial físico en la base de datos de que alguna vez cometió una falta.
+- Necesidad: Borrar por completo una sanción del sistema cuando ésta fue cargada por error, para que no quede rastro en el historial del socio. El sistema debe exigirle confirmación para evitar borrados accidentales.
 
 ### Criterios de Aceptación
-- El sistema debe pedir una confirmación explícita antes de proceder con el levantamiento de la sanción.
-- El sistema debe validar que la sanción exista antes de intentar levantarla.
-- El sistema debe validar que la sanción esté actualmente vigente (es decir, la fecha actual debe estar comprendida entre la fecha de inicio y la fecha de fin).
-- El sistema NO debe realizar un borrado físico, sino actualizar la `fechaFin` al momento actual (`now()`).
-- Si la operación es exitosa, el registro histórico se mantiene y el socio queda automáticamente rehabilitado.
+- El sistema debe buscar la sanción por su identificador único.
+- El sistema debe verificar que la sanción exista antes de intentar eliminarla; de lo contrario, devolverá un error.
+- La eliminación debe ser un Hard Delete, es decir, el registro debe desaparecer físicamente de la base de datos subyacente.
+- El proceso asume que el cliente (frontend) ya solicitó una confirmación explícita al usuario antes de disparar la petición.
+- Al finalizar, el sistema devolverá un mensaje que confirma la eliminación exitosa.
 
 ## Diseño Técnico (RFC)
 
 ### Modelo de Datos
 
-La entidad `Discipline` es la misma. La operación se centra exclusivamente en mutar el siguiente atributo:
-
-- `fechaFin`: Se sobreescribirá con el `timestamp` del momento en que se ejecuta la acción.
+No aplican cambios al modelo de datos. Se utiliza la entidad `Discipline` existente.
 
 ### Contrato de API (@alentapp/shared)
-Al tratarse de una operación de cambio de estado específico que no requiere parámetros adicionales en el cuerpo, se define un endpoint particular para esta acción.
+El endpoint utilizará el método DELETE pasando el identificador por parámetro en la URL. No requiere cuerpo en la petición.
 
-*   Endpoint: `PATCH /api/v1/disciplines/:id/lift`
-*   Request Body: Ninguno.
-*   Response Body: Entidad `Discipline` actualizada.
+*   Endpoint: `DELETE /api/v1/disciplines/:id`
+*   Request Body: `None`
+*   Response: `204 No Content` (En caso de éxito).
 
 ### Componentes de Arquitectura Hexagonal
 
-1. Puerto: `IDisciplineRepository` (Métodos `findById` y `update(id, data)`).
-2. Caso de Uso: `LiftDisciplineUseCase` (Comprueba existencia vía `findById`, verifica que `now() < fechaFin`, y delega la actualización).
-3. Adaptador de Salida: `PostgresDisciplineRepository` (Uso del método `update` de Prisma seteando la nueva fecha).
-4. Adaptador de Entrada: `DisciplineController` (Ruta HTTP que extrae el ID y ejecuta la baja lógica).
+1. **Puerto**: `IDisciplineRepository` (Método `delete(id)`).
+2. **Caso de Uso**: `DeleteDisciplineUseCase` (Comprueba la existencia de la sanción vía `findById` y delega la eliminación).
+3. **Adaptador de Salida**: `PostgresDisciplineRepository` (Eliminación usando el método `delete` de Prisma).
+4. **Adaptador de Entrada**: `DisciplineController` (Ruta HTTP que extrae el `id` y devuelve un status 204).
 
 ## Casos de Borde y Errores
-| Escenario                      | Resultado Esperado                                                          | Código HTTP               |
-| ------------------------------ | --------------------------------------------------------------------------- | ------------------------- |
-| Sanción inexistente            | "El registro de sanción no existe"                                          | 404 Not Found             |
-| Sanción no vigente / pasada    | "Error: solo se permite levantar sanciones actualmente vigentes."           | 400 Bad Request           |
-| Error de conexión a DB         | Mensaje: "Error interno, reintente más tarde"                               | 500 Internal Server Error |
-| Levantamiento exitoso          | Retorna la entidad `Discipline` con la `fechaFin` en `now()`                | 200 OK                    |
+| Escenario                 | Resultado Esperado                                                                          | Código HTTP               |
+| ------------------------- | ------------------------------------------------------------------------------------------- | ------------------------- |
+| Sanción inexistente       | "No se encontró la sanción especificada para eliminar"                                      | 404 Not Found             |
+| ID mal formado            | Mensaje indicando que el identificador no tiene formato válido (UUID)                       | 400 Bad Request           |
+| Error de conexión a DB    | Mensaje: "Error interno al intentar eliminar el registro, reintente más tarde"              | 500 Internal Server Error |
+| Eliminación exitosa       | Sin contenido en el cuerpo                                                                  | 204 No Content            |
 
 ## Plan de Implementación
 
-1. Crear la lógica de negocio en `LiftDisciplineUseCase`, utilizando la librería de fechas para comparar la vigencia e inyectar el momento exacto (`now()`).
-2. Crear el endpoint `PATCH /api/v1/disciplines/:id/lift` en el `DisciplineController`.
-3. Añadir el método correspondiente al servicio Frontend (`disciplines.ts`).
-4. Enlazar un botón de "Levantar Sanción" en la vista administrativa, agregando una advertencia del navegador (`window.confirm`) antes de ejecutar la llamada.
+1. Ampliar el `IDisciplineRepository` y `PostgresDisciplineRepository` con el método `delete`.
+2. Crear la lógica de negocio en `DeleteDisciplineUseCase`.
+3. Crear el endpoint `DELETE /api/v1/disciplines/:id` en el `DisciplineController` y registrarlo en `app.ts`.
+4. Añadir el método `delete` al servicio Frontend (`disciplines.ts`).
+5. Enlazar el botón de eliminación "Eliminar Sanción" en `DisciplinesView.tsx` agregando la confirmación del navegador (`window.confirm`) antes de hacer la llamada.

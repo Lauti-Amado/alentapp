@@ -31,3 +31,100 @@ export interface UpdateMemberRequest {
   category?: MemberCategory;
   status?: MemberStatus;
 }
+
+
+// ==========================================
+// Locker
+// ==========================================
+export type LockerStatus = 'Disponible' | 'Ocupado' | 'Mantenimiento';
+
+export interface LockerDTO {
+    id: string; // UUID
+    numero: number;
+    estado: LockerStatus;
+    ubicacion: string;
+    member_id: string | null;
+}
+
+export interface CreateLockerRequest {
+    numero: number;
+    ubicacion: string;
+}
+
+export interface UpdateLockerRequest {
+    numero?: number;
+    estado?: LockerStatus;
+    ubicacion?: string;
+    member_id?: string | null;
+}
+// ==========================================
+// Discipline
+// ==========================================
+
+export interface DisciplineDTO {
+  id: string;
+  motivo: string;
+  fechaInicio: string; // ISO Date String
+  fechaFin: string;    // ISO Date String
+  esSuspensionTotal: boolean;
+  memberId: string;
+  motivoLevantamiento: string | null;
+}
+
+export interface CreateDisciplineRequest {
+  motivo: string;
+  fechaInicio: string;
+  fechaFin: string;
+  esSuspensionTotal: boolean;
+  memberId: string;
+  motivoLevantamiento: string | null;
+}
+
+export interface UpdateDisciplineRequest {
+  motivo?: string;
+  fechaInicio?: string;
+  fechaFin?: string;
+  esSuspensionTotal?: boolean;
+  motivoLevantamiento?: string | null;
+}
+
+
+
+export interface SportDTO {
+    id:                   string    
+    Nombre :              string
+    Cupo_maximo:          number
+    Precio_adicional:     number
+    Descripcion:          string
+    Require_certificado_medico: boolean;
+}
+
+export interface CreateSportRequest { 
+    Nombre:              string
+    Cupo_maximo:          number
+    Precio_adicional:     number
+    Descripcion:          string
+    Require_certificado_medico: boolean;
+}
+
+
+// ==========================================
+// MedicalCertificate
+// ==========================================
+
+export interface MedicalCertificateDTO {
+  id: string;
+  member_id: string;
+  fecha_emision: Date;
+  fecha_vencimiento: Date;
+  esta_validado: boolean;
+  licencia_doctor: string;
+}
+
+export interface CreateMedicalCertificateRequest {
+  member_id: string;
+  fecha_emision: Date;
+  fecha_vencimiento: Date;
+  licencia_doctor: string;
+}
+

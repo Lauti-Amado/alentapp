@@ -3,10 +3,10 @@ id: 16
 estado: Propuesto
 autor: Ulises Mateo Bucchino
 fecha: 2026-05-01
-titulo: Registro de Sanciones a Socios
+titulo: Registro de Sanciones
 ---
 
-# TDD-0016: Registro de Sanciones a Socios
+# TDD-0016: Registro de Sanciones
 
 ## Contexto de Negocio (PRD)
 
@@ -19,7 +19,7 @@ Registrar suspensiones o faltas de conducta de los socios del club. Es necesario
 
 ### Criterios de Aceptación
 - El sistema debe validar que todos los campos requeridos (socio, motivo, fecha de inicio, fecha de fin) estén presentes.
-- El sistema debe validar que la fecha de fin (`end_date`) sea estrictamente posterior a la de inicio (`start_date`).
+- El sistema debe validar que la fecha de fin (`fechaFin`) sea estrictamente posterior a la de inicio (`fechaInicio`).
 - El sistema debe verificar que el socio exista en la base de datos antes de registrar la sanción.
 - El sistema debe rechazar la operación si el socio ya cuenta con una suspensión total vigente.
 - Al finalizar, el sistema debe mostrar el mensaje: "Sanción registrada exitosamente".
@@ -32,9 +32,10 @@ El modelo de datos de la entidad `Discipline` será:
 
 - `id`: Identificador único universal (UUID).
 - `motivo`: Cadena de texto detallando la infracción cometida por el socio.
-- `fechaInicio`: Fecha y hora de inicio de la sanción.
-- `fechaFin`: Fecha y hora de fin de la sanción.
+- `fechaInicio`: Fecha de inicio de la sanción.
+- `fechaFin`: Fecha de fin de la sanción.
 - `esSuspensionTotal`: Boolean que indica si bloquea todos los servicios (por defecto `true`).
+- `motivoLevantamiento`: Cadena de texto detallando el motivo de levantamiento de la infracción cometida por el socio, si es que fue perdonado. Obviamente, no se solicita al registrarla.
 - `memberId`: Identificador único universal (UUID) del socio afectado, actuando como clave foránea.
 
 ### Contrato de API (@alentapp/shared)
@@ -49,15 +50,16 @@ Se utilizará el paquete compartido para definir los tipos y asegurar sincroniza
     fechaFin: string;
     esSuspensionTotal: boolean;
     memberId: string;
+    motivoLevantamiento: string | null;
 }
 ```
 
 ### Componentes de Arquitectura Hexagonal
 
-1. Puerto: `IDisciplineRepository` (Interface en el Dominio con métodos `create` y `findActiveTotalSuspensionByMember`).
-2. Caso de Uso: `CreateDisciplineUseCase` (Lógica que verifica fechas y comprueba si el socio ya tiene una sanción total activa antes de llamar al repositorio).
-3. Adaptador de Salida: `PostgresDisciplineRepository` (Implementación real en BD usando Prisma).
-4. Adaptador de Entrada: `DisciplineController` (Ruta HTTP).
+1. **Puerto**: `IDisciplineRepository` (Interface en el Dominio con métodos `create` y `findActiveTotalSuspensionByMember`).
+2. **Caso de Uso**: `CreateDisciplineUseCase` (Lógica que verifica fechas y comprueba si el socio ya tiene una sanción total activa antes de llamar al repositorio).
+3. **Adaptador de Salida**: `PostgresDisciplineRepository` (Implementación real en BD usando Prisma).
+4. **Adaptador de Entrada**: `DisciplineController` (Ruta HTTP).
 
 ## Casos de Borde y Errores
 | Escenario                        | Resultado Esperado                                        | Código HTTP               |

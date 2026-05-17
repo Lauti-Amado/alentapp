@@ -75,8 +75,8 @@ Definiremos los tipos en el paquete compartido para asegurar la sincronización
        
 ## Plan de Implementación
 
-1. Definir esquema de persistencia de la entidad ```Sport``` en el archivo schema.prisma y corre migración. 
-2. Crear tipos con validaciones estrictas ZOD en ```@alentapp/shared```.
+1. Definir esquema de persistencia de la entidad ```Sport``` en el archivo schema.prisma y correr migración. 
+2. Crear tipos en `@alentapp/shared`.
 3. Implementar la Interfaz ```SportRepository```.
 4. Implementar ```CreateSport```.
 5. Crear endpoint en ```SportController```.
