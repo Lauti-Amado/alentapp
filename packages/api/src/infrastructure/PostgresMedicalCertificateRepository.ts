@@ -106,7 +106,7 @@ export class PostgresMedicalCertificateRepository implements MedicalCertificateR
         }
     }
 
-    async darDeAltaCertificado(socioID: string): Promise<void> {
+    async darDeAltaCertificadoPorSocio(socioID: string): Promise<void> {
         // 1. Busca el certificado con la fecha de vencimiento más alta
         const ultimoCertificado = await prisma.medicalCertificate.findFirst({
            where: {
