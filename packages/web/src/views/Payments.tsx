@@ -12,7 +12,7 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
-import { LuPencil, LuPlus, LuRefreshCw } from "react-icons/lu";
+import { LuPencil, LuPlus, LuRefreshCw, LuTrash2 } from "react-icons/lu";
 import { useEffect, useMemo, useState } from "react";
 import { paymentsService } from "../services/payments";
 import { membersService } from "../services/members";
@@ -129,6 +129,25 @@ export function PaymentsView() {
     });
     setLocalError(null);
     setIsDialogOpen(true);
+  };
+
+  const handleSoftDeletePayment = async (payment: PaymentDTO) => {
+    const confirmed = window.confirm(
+      `¿Estás seguro de que deseas dar de baja el pago del periodo ${payment.mes}/${payment.anio}? Esta acción conserva el registro para auditoría.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setError(null);
+    try {
+      await paymentsService.delete(payment.id);
+      await fetchData();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al dar de baja el pago";
+      setError(message);
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -380,6 +399,15 @@ export function PaymentsView() {
                         onClick={() => openEditModal(payment)}
                       >
                         <LuPencil />
+                      </IconButton>
+                      <IconButton
+                        variant="ghost"
+                        size="sm"
+                        colorPalette="red"
+                        aria-label="Dar de baja pago"
+                        onClick={() => handleSoftDeletePayment(payment)}
+                      >
+                        <LuTrash2 />
                       </IconButton>
                     </Table.Cell>
                   </Table.Row>
