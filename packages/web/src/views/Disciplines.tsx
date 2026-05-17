@@ -3,6 +3,7 @@ import {
     Center,
     Heading,
     HStack,
+    IconButton,
     Stack,
     Table,
     Text,
@@ -116,6 +117,7 @@ export function DisciplinesView() {
         try {
             await disciplinesService.delete(id);
             fetchDisciplines();
+            alert("Sanción eliminada exitosamente");
         } catch (err: any) {
             alert(err.message || "Error al eliminar la sanción");
         }
@@ -454,17 +456,17 @@ export function DisciplinesView() {
                                         </Table.Cell>
                                         <Table.Cell textAlign="end">
                                             <HStack gap="2" justify="end">
-                                                <Button size="sm" variant="outline" onClick={() => openEditModal(d)}>
-                                                    <LuPencil /> Editar
-                                                </Button>
+                                                <IconButton size="sm" variant="ghost" onClick={() => openEditModal(d)}>
+                                                    <LuPencil />
+                                                </IconButton>
                                                 {isLiftable && (
-                                                    <Button size="sm" colorPalette="orange" variant="outline" onClick={() => openLiftModal(d)}>
-                                                        <LuShieldOff /> Levantar
-                                                    </Button>
+                                                    <IconButton size="sm" colorPalette="orange" variant="ghost" onClick={() => openLiftModal(d)}>
+                                                        <LuShieldOff />
+                                                    </IconButton>
                                                 )}
-                                                <Button size="sm" colorPalette="red" variant="outline" onClick={() => handleDelete(d.id, d.motivo)}>
-                                                    <LuTrash2 /> Eliminar
-                                                </Button>
+                                                <IconButton size="sm" colorPalette="red" variant="ghost" onClick={() => handleDelete(d.id, d.motivo)}>
+                                                    <LuTrash2 />
+                                                </IconButton>
                                             </HStack>
                                         </Table.Cell>
                                     </Table.Row>
