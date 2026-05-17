@@ -29,6 +29,7 @@ import { MedicalCertificateController } from './delivery/MedicalCertificateContr
 import { MedicalCertificateValidator } from './domain/services/MedicalCertificateValidator.js';
 import { CreatePaymentUseCase } from './application/CreatePaymentUseCase.js';
 import { GetPaymentsUseCase } from './application/GetPaymentsUseCase.js';
+import { UpdatePaymentUseCase } from './application/UpdatePaymentUseCase.js';
 import { MemberController } from './delivery/MemberController.js';
 import { LockerController } from './delivery/LockerController.js';
 import { DisciplineController } from './delivery/DisciplineController.js';
@@ -100,6 +101,7 @@ export function buildApp() {
 
     const createPaymentUseCase = new CreatePaymentUseCase(paymentRepo, paymentValidator);
     const getPaymentsUseCase = new GetPaymentsUseCase(paymentRepo);
+    const updatePaymentUseCase = new UpdatePaymentUseCase(paymentRepo, paymentValidator);
 
     const memberController = new MemberController(
         createMemberUseCase, 
@@ -141,7 +143,8 @@ export function buildApp() {
 
     const paymentController = new PaymentController(
         createPaymentUseCase,
-        getPaymentsUseCase
+        getPaymentsUseCase,
+        updatePaymentUseCase
     );
 
     //Miembro
@@ -168,6 +171,7 @@ export function buildApp() {
     //Payment
     server.get('/api/v1/pagos', paymentController.getAll.bind(paymentController));
     server.post('/api/v1/pagos', paymentController.create.bind(paymentController));
+    server.put('/api/v1/pagos/:id', paymentController.update.bind(paymentController));
   
     // Sports
     server.get('/api/v1/sports', sportController.getAll.bind(sportController));
