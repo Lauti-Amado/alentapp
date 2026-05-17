@@ -29,6 +29,7 @@ import { CreateSportUseCase} from './application/CreateSportUseCase.js';
 import { GetSportsUseCase } from './application/GetSportsUseCase.js';
 import { GetSportByNameUseCase } from './application/GetSportByNameUseCase.js';
 import { UpdateSportUseCase } from './application/UpdateSportUseCase.js';
+import { DeleteSportUseCase } from './application/DeleteSportUseCase.js';
 import { SportController } from './delivery/SportController.js';
 
 
@@ -80,6 +81,7 @@ export function buildApp() {
     const getSportsUseCase = new GetSportsUseCase(sportRepo);
     const getSportByNameUseCase = new GetSportByNameUseCase(sportRepo);
     const updateSportUseCase = new UpdateSportUseCase(sportRepo);
+    const deleteSportUseCase = new DeleteSportUseCase(sportRepo);
 
     const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
     const getMedicalCertificatesUseCase = new GetMedicalCertificatesUseCase(medicalCertificateRepo);
@@ -116,7 +118,8 @@ export function buildApp() {
        createSportUseCase,
        getSportsUseCase,
        getSportByNameUseCase,
-       updateSportUseCase
+       updateSportUseCase,
+       deleteSportUseCase,
 );
 
 
@@ -146,6 +149,7 @@ export function buildApp() {
     server.get('/api/v1/sports/name/:name', sportController.getByName.bind(sportController));
     server.post('/api/v1/sports', sportController.create.bind(sportController));
     server.put('/api/v1/sports/:id', sportController.update.bind(sportController));
+    server.delete('/api/v1/sports/:id', sportController.delete.bind(sportController));
 
     server.get('/', async (req, rep) => {
         rep.status(200).send({ msg: 'asd' })
