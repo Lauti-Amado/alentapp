@@ -3,6 +3,7 @@ import { CreateSportUseCase } from '../application/CreateSportUseCase.js';
 import { GetSportsUseCase } from '../application/GetSportsUseCase.js';
 import { GetSportByNameUseCase } from '../application/GetSportByNameUseCase.js';
 import { UpdateSportUseCase } from '../application/UpdateSportUseCase.js';
+import { DeleteSportUseCase } from '../application/DeleteSportUseCase.js';
 import { CreateSportRequest, UpdateSportRequest } from '@alentapp/shared';
 
 export class SportController {
@@ -11,6 +12,7 @@ export class SportController {
         private readonly getSportUseCase: GetSportsUseCase,
         private readonly getSportByNameUseCase: GetSportByNameUseCase,
         private readonly updateSportUseCase: UpdateSportUseCase,
+        private readonly deleteSportUseCase: DeleteSportUseCase,
     ) {}
 
     async getAll(_request: FastifyRequest, reply: FastifyReply) {
@@ -57,7 +59,19 @@ export class SportController {
         }
     }
 
-
+    async delete(
+        request: FastifyRequest<{ Params: { id: string } }>,
+        reply: FastifyReply,
+    ) {
+        try {
+            const { id } = request.params;
+            await this.deleteSportUseCase.execute(id);
+            return reply.status(204).send(); // No Content
+        } catch (error: any) {
+            return reply.status(400).send({ error: error.message });
+        }
+    }
+    
     async getByName(
         request: FastifyRequest<{ Params: { name: string } }>,
         reply: FastifyReply,
