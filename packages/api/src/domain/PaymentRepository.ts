@@ -5,4 +5,5 @@ export interface PaymentRepository {
     findById(id: string): Promise<PaymentDTO | null>;
     findAll(): Promise<PaymentDTO[]>;
     update(id: string, data: UpdatePaymentRequest): Promise<PaymentDTO>;
+    softDelete(id: string): Promise<void>;
 }
