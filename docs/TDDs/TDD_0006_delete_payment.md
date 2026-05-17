@@ -29,6 +29,8 @@ Permitir a los administrativos dar de baja lógicamente un pago cargado por erro
 - El registro debe permanecer en la base de datos luego de la operación.
 - Los pagos con `deleted_at` distinto de `null` no deben mostrarse en los listados o consultas normales de pagos activos.
 - Si el pago ya fue dado de baja lógicamente, debe retornar un error claro.
+- El sistema solo debe permitir la baja lógica de pagos cuyo estado sea `Cancelado`.
+- Los pagos en estado `Pendiente` o `Pagado` no deben poder darse de baja directamente; primero deben pasar a estado `Cancelado` mediante la modificación del pago.
 
 ## Diseño Técnico (RFC)
 
@@ -37,6 +39,8 @@ La baja lógica de un pago no debe eliminar el registro de la base de datos. La 
 No se debe usar `prisma.payment.delete`. La operación debe persistirse con una actualización de `deleted_at` a `now()`.
 
 A partir de esta baja lógica, las consultas y listados normales de pagos deben excluir los registros cuyo `deleted_at` sea distinto de `null`.
+
+La baja lógica se ejecutará únicamente sobre pagos previamente cancelados. El estado `Cancelado` representa el cierre operativo del pago antes de su baja lógica, mientras que la baja lógica se registrará exclusivamente mediante el campo `deleted_at`.
 
 ### Contrato de API (@alentapp/shared)
 
@@ -59,6 +63,7 @@ Al tratarse de una operación de baja lógica que solo requiere conocer el ident
 | -------------------------- | ------------------------------------------------------- | ------------------------- |
 | Pago inexistente           | Mensaje: "El pago no existe"                           | 400 Bad Request           |
 | Pago ya dado de baja       | Mensaje: "El pago ya fue dado de baja"                 | 409 Conflict              |
+| Pago no cancelado          | Mensaje: "Solo se pueden dar de baja pagos cancelados" | 409 Conflict              |
 | Baja lógica exitosa        | Respuesta vacía y registro con `deleted_at` informado   | 204 No Content            |
 | Error de conexión a DB     | Mensaje: "Error interno, reintente más tarde"          | 500 Internal Server Error |
 
