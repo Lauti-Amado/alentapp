@@ -5,17 +5,24 @@ import {
   Flex,
   Heading,
   HStack,
+  IconButton,
   Input,
   Spinner,
   Stack,
   Table,
   Text,
 } from "@chakra-ui/react";
-import { LuPlus, LuRefreshCw } from "react-icons/lu";
+import { LuPencil, LuPlus, LuRefreshCw } from "react-icons/lu";
 import { useEffect, useMemo, useState } from "react";
 import { paymentsService } from "../services/payments";
 import { membersService } from "../services/members";
-import type { CreatePaymentRequest, MemberDTO, PaymentDTO } from "@alentapp/shared";
+import type {
+  CreatePaymentRequest,
+  MemberDTO,
+  PaymentDTO,
+  PaymentStatus,
+  UpdatePaymentRequest,
+} from "@alentapp/shared";
 import {
   DialogActionTrigger,
   DialogBody,
@@ -36,13 +43,28 @@ import {
   createListCollection,
 } from "../components/ui/select";
 
-const initialFormData: CreatePaymentRequest = {
+type PaymentFormData = CreatePaymentRequest & {
+  estado: PaymentStatus;
+  fecha_pago: string;
+};
+
+const statusCollection = createListCollection({
+  items: [
+    { label: "Pendiente", value: "Pendiente" },
+    { label: "Pagado", value: "Pagado" },
+    { label: "Cancelado", value: "Cancelado" },
+  ],
+});
+
+const createInitialFormData = (): PaymentFormData => ({
   member_id: "",
   monto: 0,
   mes: new Date().getMonth() + 1,
   anio: new Date().getFullYear(),
   fecha_vencimiento: "",
-};
+  estado: "Pendiente",
+  fecha_pago: "",
+});
 
 export function PaymentsView() {
   const [payments, setPayments] = useState<PaymentDTO[]>([]);
@@ -52,7 +74,8 @@ export function PaymentsView() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<CreatePaymentRequest>(initialFormData);
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<PaymentFormData>(createInitialFormData);
 
   const membersCollection = useMemo(
     () => createListCollection({
@@ -87,7 +110,23 @@ export function PaymentsView() {
   };
 
   const openCreateModal = () => {
-    setFormData(initialFormData);
+    setEditingPaymentId(null);
+    setFormData(createInitialFormData());
+    setLocalError(null);
+    setIsDialogOpen(true);
+  };
+
+  const openEditModal = (payment: PaymentDTO) => {
+    setEditingPaymentId(payment.id);
+    setFormData({
+      member_id: payment.member_id,
+      monto: payment.monto,
+      mes: payment.mes,
+      anio: payment.anio,
+      fecha_vencimiento: payment.fecha_vencimiento,
+      estado: payment.estado,
+      fecha_pago: payment.fecha_pago ?? "",
+    });
     setLocalError(null);
     setIsDialogOpen(true);
   };
@@ -96,23 +135,41 @@ export function PaymentsView() {
     event.preventDefault();
     setLocalError(null);
 
-    if (!formData.member_id) {
+    if (!editingPaymentId && !formData.member_id) {
       setLocalError("El miembro no existe");
+      return;
+    }
+
+    if (editingPaymentId && formData.estado === "Pagado" && !formData.fecha_pago) {
+      setLocalError("La fecha de pago es obligatoria");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await paymentsService.create({
-        ...formData,
-        monto: Number(formData.monto),
-        mes: Number(formData.mes),
-        anio: Number(formData.anio),
-      });
+      if (editingPaymentId) {
+        const updateData: UpdatePaymentRequest = {
+          monto: Number(formData.monto),
+          mes: Number(formData.mes),
+          anio: Number(formData.anio),
+          fecha_vencimiento: formData.fecha_vencimiento,
+          estado: formData.estado,
+          ...(formData.fecha_pago ? { fecha_pago: formData.fecha_pago } : {}),
+        };
+        await paymentsService.update(editingPaymentId, updateData);
+      } else {
+        await paymentsService.create({
+          member_id: formData.member_id,
+          monto: Number(formData.monto),
+          mes: Number(formData.mes),
+          anio: Number(formData.anio),
+          fecha_vencimiento: formData.fecha_vencimiento,
+        });
+      }
       setIsDialogOpen(false);
       await fetchData();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error al crear el pago";
+      const message = err instanceof Error ? err.message : "Error al guardar el pago";
       setLocalError(message);
     } finally {
       setIsSubmitting(false);
@@ -122,6 +179,8 @@ export function PaymentsView() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const selectedMember = membersById.get(formData.member_id);
 
   return (
     <DialogRoot open={isDialogOpen} onOpenChange={(event) => setIsDialogOpen(event.open)}>
@@ -146,7 +205,7 @@ export function PaymentsView() {
         <DialogContent>
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>Agregar Nuevo Pago</DialogTitle>
+              <DialogTitle>{editingPaymentId ? "Editar Pago" : "Agregar Nuevo Pago"}</DialogTitle>
             </DialogHeader>
             <DialogBody>
               <Stack gap="4">
@@ -156,22 +215,30 @@ export function PaymentsView() {
                   </Box>
                 )}
                 <Field label="Socio" required>
-                  <SelectRoot
-                    collection={membersCollection}
-                    value={formData.member_id ? [formData.member_id] : []}
-                    onValueChange={(event) => setFormData({ ...formData, member_id: event.value[0] || "" })}
-                  >
-                    <SelectTrigger>
-                      <SelectValueText placeholder="Seleccione un socio" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {membersCollection.items.map((member) => (
-                        <SelectItem item={member} key={member.value}>
-                          {member.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </SelectRoot>
+                  {editingPaymentId ? (
+                    <Box p="3" bg="bg.muted" borderWidth="1px" borderRadius="md">
+                      <Text fontWeight="medium">
+                        {selectedMember ? `${selectedMember.name} - DNI ${selectedMember.dni}` : formData.member_id}
+                      </Text>
+                    </Box>
+                  ) : (
+                    <SelectRoot
+                      collection={membersCollection}
+                      value={formData.member_id ? [formData.member_id] : []}
+                      onValueChange={(event) => setFormData({ ...formData, member_id: event.value[0] || "" })}
+                    >
+                      <SelectTrigger>
+                        <SelectValueText placeholder="Seleccione un socio" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {membersCollection.items.map((member) => (
+                          <SelectItem item={member} key={member.value}>
+                            {member.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </SelectRoot>
+                  )}
                 </Field>
                 <Field label="Monto" required>
                   <Input
@@ -211,6 +278,35 @@ export function PaymentsView() {
                     required
                   />
                 </Field>
+                {editingPaymentId && (
+                  <>
+                    <Field label="Estado" required>
+                      <SelectRoot
+                        collection={statusCollection}
+                        value={[formData.estado]}
+                        onValueChange={(event) => setFormData({ ...formData, estado: event.value[0] as PaymentStatus })}
+                      >
+                        <SelectTrigger>
+                          <SelectValueText placeholder="Seleccione el estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statusCollection.items.map((status) => (
+                            <SelectItem item={status} key={status.value}>
+                              {status.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </SelectRoot>
+                    </Field>
+                    <Field label="Fecha de pago">
+                      <Input
+                        type="date"
+                        value={formData.fecha_pago}
+                        onChange={(event) => setFormData({ ...formData, fecha_pago: event.target.value })}
+                      />
+                    </Field>
+                  </>
+                )}
               </Stack>
             </DialogBody>
             <DialogFooter>
@@ -218,7 +314,7 @@ export function PaymentsView() {
                 <Button variant="outline">Cancelar</Button>
               </DialogActionTrigger>
               <Button type="submit" colorPalette="blue" loading={isSubmitting}>
-                Crear Pago
+                {editingPaymentId ? "Guardar Cambios" : "Crear Pago"}
               </Button>
             </DialogFooter>
             <DialogCloseTrigger />
@@ -257,6 +353,7 @@ export function PaymentsView() {
                   <Table.ColumnHeader py="4">Vencimiento</Table.ColumnHeader>
                   <Table.ColumnHeader py="4">Estado</Table.ColumnHeader>
                   <Table.ColumnHeader py="4">Fecha de pago</Table.ColumnHeader>
+                  <Table.ColumnHeader py="4" textAlign="end">Acciones</Table.ColumnHeader>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -274,6 +371,16 @@ export function PaymentsView() {
                       </Box>
                     </Table.Cell>
                     <Table.Cell color="fg.muted">{payment.fecha_pago || "-"}</Table.Cell>
+                    <Table.Cell textAlign="end">
+                      <IconButton
+                        variant="ghost"
+                        size="sm"
+                        aria-label="Editar pago"
+                        onClick={() => openEditModal(payment)}
+                      >
+                        <LuPencil />
+                      </IconButton>
+                    </Table.Cell>
                   </Table.Row>
                 ))}
               </Table.Body>
