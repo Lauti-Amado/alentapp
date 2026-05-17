@@ -36,7 +36,6 @@ import { GetSportByNameUseCase } from './application/GetSportByNameUseCase.js';
 import { UpdateSportUseCase } from './application/UpdateSportUseCase.js';
 import { DeleteSportUseCase } from './application/DeleteSportUseCase.js';
 import { SportController } from './delivery/SportController.js';
-
 import { PaymentController } from './delivery/PaymentController.js';
 
 export function buildApp() {
@@ -61,9 +60,9 @@ export function buildApp() {
 
     const memberRepo = new PostgresMemberRepository();
     const memberValidator = new MemberValidator(memberRepo);
+
     const lockerRepo = new PostgresLockerRepository();
     const disciplineRepo = new PostgresDisciplineRepository();
-
     const medicalCertificateRepo = new PostgresMedicalCertificateRepository();
     const sportRepo = new PostgresSportRepository();
     const paymentRepo = new PostgresPaymentRepository();
@@ -93,7 +92,7 @@ export function buildApp() {
 
     const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
     const getMedicalCertificatesUseCase = new GetMedicalCertificatesUseCase(medicalCertificateRepo);
-    const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo)
+    const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
 
     const createPaymentUseCase = new CreatePaymentUseCase(paymentRepo, paymentValidator);
     const getPaymentsUseCase = new GetPaymentsUseCase(paymentRepo);
@@ -157,14 +156,12 @@ export function buildApp() {
     server.post('/api/v1/disciplines', disciplineController.create.bind(disciplineController));
     server.put('/api/v1/disciplines/:id', disciplineController.update.bind(disciplineController));
     server.delete('/api/v1/disciplines/:id', disciplineController.delete.bind(disciplineController));
-
     //Medical Certificate
     server.get('/api/v1/medical_certificates', medicalCertificateController.getAll.bind(medicalCertificateController));
     server.post('/api/v1/medical_certificates', medicalCertificateController.create.bind(medicalCertificateController));
     //Payment
     server.get('/api/v1/pagos', paymentController.getAll.bind(paymentController));
     server.post('/api/v1/pagos', paymentController.create.bind(paymentController));
-
     // Sports
     server.get('/api/v1/sports', sportController.getAll.bind(sportController));
     server.get('/api/v1/sports/name/:name', sportController.getByName.bind(sportController));
