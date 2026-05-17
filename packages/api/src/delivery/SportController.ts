@@ -2,8 +2,6 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { CreateSportUseCase } from '../application/CreateSportUseCase.js';
 import { GetSportsUseCase } from '../application/GetSportsUseCase.js';
 import { GetSportByNameUseCase } from '../application/GetSportByNameUseCase.js';
-import { UpdateSportUseCase } from '../application/UpdateSportUseCase.js';
-import { DeleteSportUseCase } from '../application/DeleteSportUseCase.js';
 import { CreateSportRequest } from '@alentapp/shared';
 
 export class SportController {
@@ -11,8 +9,7 @@ export class SportController {
         private readonly createSportUseCase: CreateSportUseCase,
         private readonly getSportUseCase: GetSportsUseCase,
         private readonly getSportByNameUseCase: GetSportByNameUseCase,
-        private readonly updateSportUseCase: UpdateSportUseCase,
-        private readonly deleteSportUseCase: DeleteSportUseCase,
+       
     ) {}
 
     async getAll(_request: FastifyRequest, reply: FastifyReply) {
@@ -42,8 +39,6 @@ export class SportController {
     }
 
   
-    
-
     async getByName(
         request: FastifyRequest<{ Params: { name: string } }>,
         reply: FastifyReply,
