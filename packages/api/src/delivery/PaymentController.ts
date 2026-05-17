@@ -2,6 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 import { CreatePaymentRequest } from '@alentapp/shared';
 import { CreatePaymentUseCase } from '../application/CreatePaymentUseCase.js';
 import { GetPaymentsUseCase } from '../application/GetPaymentsUseCase.js';
+import { SoftDeletePaymentUseCase } from '../application/SoftDeletePaymentUseCase.js';
 import { UpdatePaymentPayload, UpdatePaymentUseCase } from '../application/UpdatePaymentUseCase.js';
 
 export class PaymentController {
@@ -9,6 +10,7 @@ export class PaymentController {
         private readonly createPaymentUseCase: CreatePaymentUseCase,
         private readonly getPaymentsUseCase: GetPaymentsUseCase,
         private readonly updatePaymentUseCase: UpdatePaymentUseCase,
+        private readonly softDeletePaymentUseCase: SoftDeletePaymentUseCase,
     ) {}
 
     async getAll(_request: FastifyRequest, reply: FastifyReply) {
@@ -77,6 +79,32 @@ export class PaymentController {
                 message === 'La fecha de pago es obligatoria' ||
                 message === 'El estado del pago es inválido'
             ) {
+                return reply.status(400).send({ error: message });
+            }
+
+            return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
+        }
+    }
+
+    async delete(
+        request: FastifyRequest<{ Params: { id: string } }>,
+        reply: FastifyReply,
+    ) {
+        try {
+            const { id } = request.params;
+            await this.softDeletePaymentUseCase.execute(id);
+            return reply.status(204).send();
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Error interno, reintente más tarde';
+
+            if (
+                message === 'El pago ya fue dado de baja' ||
+                message === 'Solo se pueden dar de baja pagos cancelados'
+            ) {
+                return reply.status(409).send({ error: message });
+            }
+
+            if (message === 'El pago no existe') {
                 return reply.status(400).send({ error: message });
             }
 
