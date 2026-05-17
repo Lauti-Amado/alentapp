@@ -3,6 +3,7 @@ import {
   Button, 
   Heading, 
   HStack, 
+  IconButton, 
   Stack, 
   Text, 
   Box,
@@ -11,10 +12,10 @@ import {
   Center,
   Input
 } from "@chakra-ui/react";
-import { LuPlus, LuRefreshCw } from "react-icons/lu";
+import { LuPlus, LuPencil, LuRefreshCw } from "react-icons/lu";
 import { useEffect, useState } from "react";
 import { sportsService } from "../services/sports";
-import type { SportDTO, CreateSportRequest } from "@alentapp/shared";
+import type { SportDTO, CreateSportRequest, UpdateSportRequest } from "@alentapp/shared";
 import { 
   DialogRoot, 
   DialogContent, 
@@ -35,6 +36,7 @@ export function SportsView() {
   // State for the modal
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingSportId, setEditingSportId] = useState<string | null>(null);
 
   // Estado para capturar los errores de validación del backend por campo
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -42,7 +44,7 @@ export function SportsView() {
   // Form state
   const [formData, setFormData] = useState({
     Nombre: "",
-    Cupo_maximo: 1,
+    Cupo_maximo: 0,
     Precio_adicional: 0,
     Descripcion: "",
     Require_certificado_medico: false,
@@ -62,6 +64,7 @@ export function SportsView() {
   };
 
   const openCreateModal = () => {
+    setEditingSportId(null);
     setFormErrors({});
     setFormData({ 
       Nombre: "", 
@@ -73,29 +76,55 @@ export function SportsView() {
     setIsDialogOpen(true);
   };
 
+  const openEditModal = (sport: SportDTO) => {
+    setEditingSportId(sport.id);
+    setFormErrors({});
+    setFormData({
+      Nombre: sport.Nombre,
+      Cupo_maximo: sport.Cupo_maximo,
+      Precio_adicional: sport.Precio_adicional,
+      Descripcion: sport.Descripcion,
+      Require_certificado_medico: sport.Require_certificado_medico,
+    });
+    setIsDialogOpen(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setFormErrors({}); 
+    setFormErrors({}); // Limpiar errores previos
     
     try {
-      const createData: CreateSportRequest = {
-        ...formData,
-        Cupo_maximo: Number(formData.Cupo_maximo),
-        Precio_adicional: Number(formData.Precio_adicional),
-      };
-      
-      await sportsService.create(createData);
+         if (editingSportId) {
+         // Armamos la petición de edición permitiendo modificar Cupo y Descripción
+         const updateData: UpdateSportRequest = {
+         Cupo_maximo: Number(formData.Cupo_maximo),
+         Descripcion: formData.Descripcion,
+      } as UpdateSportRequest;
+  
+        await sportsService.update(editingSportId, updateData);
+       } else {
+        const createData: CreateSportRequest = {
+          ...formData,
+          Cupo_maximo: Number(formData.Cupo_maximo),
+          Precio_adicional: Number(formData.Precio_adicional),
+        } as CreateSportRequest;
+        await sportsService.create(createData);
+      }
       setIsDialogOpen(false);
       fetchSports(); 
     } catch (err: any) {
+      // 1. Corregido: Leemos '.error' que es lo que manda tu FastifyController
+      // 2. Usamos .toLowerCase() para que no fallen las comparaciones por mayúsculas
       const errorMessage = (err.response?.data?.error || err.message || "").toLowerCase();
       const errorsMap: Record<string, string> = {};
+
+      // Restablecemos el mensaje original para mostrarlo en el input
       const originalMessage = err.response?.data?.error || err.message || "";
 
       if (errorMessage.includes("nombre") || errorMessage.includes("existe un deporte")) {
         errorsMap.Nombre = originalMessage;
-      } else if (errorMessage.includes("cupo")) { 
+      } else if (errorMessage.includes("cupo")) { // Corregido a "cupo" (singular)
         errorsMap.Cupo_maximo = originalMessage;
       } else if (errorMessage.includes("precio")) {
         errorsMap.Precio_adicional = originalMessage;
@@ -106,11 +135,13 @@ export function SportsView() {
         return;
       }
 
+      // Seteamos el mapa de errores para que Chakra UI pinte el input correspondiente
       setFormErrors(errorsMap);
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   useEffect(() => {
     fetchSports();
@@ -136,11 +167,11 @@ export function SportsView() {
           </HStack>
         </Flex>
 
-        {/* Modal para agregar deporte */}
+        {/* Modal para agregar/editar deporte */}
         <DialogContent>
           <form onSubmit={handleSubmit} noValidate>
             <DialogHeader>
-              <DialogTitle>Agregar Nuevo Deporte</DialogTitle>
+              <DialogTitle>{editingSportId ? "Editar Deporte" : "Agregar Nuevo Deporte"}</DialogTitle>
             </DialogHeader>
             <DialogBody>
               <Stack gap="4">
@@ -156,37 +187,41 @@ export function SportsView() {
                     value={formData.Nombre}
                     onChange={(e) => setFormData({ ...formData, Nombre: e.target.value })}
                     required
+                    disabled={!!editingSportId} 
                   />
                 </Field>
 
-                <Field 
-                  label="Cupo Máximo" 
-                  invalid={!!formErrors.Cupo_maximo} 
-                  errorText={formErrors.Cupo_maximo}
-                >
-                  <Input 
-                    type="number"
-                    placeholder="Ej. 30" 
-                    value={formData.Cupo_maximo}
-                    onChange={(e) => setFormData({ ...formData, Cupo_maximo: Number(e.target.value) })}
-                    required
-                  />
-                </Field>
+               {/* 1. INPUT DE CUPO MÁXIMO (Ahora se le quita el disabled para permitir editarlo) */}
+<Field 
+  label="Cupo Máximo" 
+  invalid={!!formErrors.Cupo_maximo} 
+  errorText={formErrors.Cupo_maximo}
+>
+  <Input 
+    type="number"
+    placeholder="Ej. 30" 
+    value={formData.Cupo_maximo}
+    onChange={(e) => setFormData({ ...formData, Cupo_maximo: Number(e.target.value) })}
+    required
+    // QUITADO: Ya no está bloqueado al editar
+  />
+</Field>
 
-                <Field 
-                  label="Precio Adicional ($)" 
-                  invalid={!!formErrors.Precio_adicional} 
-                  errorText={formErrors.Precio_adicional}
-                >
-                  <Input 
-                    type="number"
-                    placeholder="Ej. 1500" 
-                    value={formData.Precio_adicional}
-                    onChange={(e) => setFormData({ ...formData, Precio_adicional: Number(e.target.value) })}
-                    required
-                  />
-                </Field>
-
+{/* 2. INPUT DE PRECIO ADICIONAL (Ahora se bloquea al editar) */}
+<Field 
+  label="Precio Adicional ($)" 
+  invalid={!!formErrors.Precio_adicional} 
+  errorText={formErrors.Precio_adicional}
+>
+  <Input 
+    type="number"
+    placeholder="Ej. 1500" 
+    value={formData.Precio_adicional}
+    onChange={(e) => setFormData({ ...formData, Precio_adicional: Number(e.target.value) })}
+    required
+    disabled={!!editingSportId} // AGREGADO: Bloquea el precio si estás editando
+  />
+</Field>
                 <Field 
                   label="Descripción" 
                   invalid={!!formErrors.Descripcion} 
@@ -205,7 +240,8 @@ export function SportsView() {
                       type="checkbox"
                       checked={formData.Require_certificado_medico}
                       onChange={(e) => setFormData({ ...formData, Require_certificado_medico: e.target.checked })}
-                      style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                      disabled={!!editingSportId}
+                      style={{ width: "18px", height: "18px", cursor: editingSportId ? "not-allowed" : "pointer" }}
                     />
                     <Text fontSize="sm" color="fg.muted">Marcar si es obligatorio presentar certificado</Text>
                   </HStack>
@@ -218,7 +254,7 @@ export function SportsView() {
                 <Button variant="outline">Cancelar</Button>
               </DialogActionTrigger>
               <Button type="submit" colorPalette="blue" loading={isSubmitting}>
-                Crear Deporte
+                {editingSportId ? "Guardar Cambios" : "Crear Deporte"}
               </Button>
             </DialogFooter>
             <DialogCloseTrigger />
@@ -264,6 +300,7 @@ export function SportsView() {
                   <Table.ColumnHeader py="4">Precio Adic.</Table.ColumnHeader>
                   <Table.ColumnHeader py="4">Descripción</Table.ColumnHeader>
                   <Table.ColumnHeader py="4">Certificado</Table.ColumnHeader>
+                  <Table.ColumnHeader py="4" textAlign="end">Acciones</Table.ColumnHeader>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -288,6 +325,18 @@ export function SportsView() {
                       >
                         {sport.Require_certificado_medico ? 'Obligatorio' : 'No requiere'}
                       </Box>
+                    </Table.Cell>
+                    <Table.Cell textAlign="end">
+                      <HStack gap="2" justify="flex-end">
+                        <IconButton 
+                          variant="ghost" 
+                          size="sm" 
+                          aria-label="Editar deporte"
+                          onClick={() => openEditModal(sport)}
+                        >
+                          <LuPencil />
+                        </IconButton>
+                      </HStack>
                     </Table.Cell>
                   </Table.Row>
                 ))}
