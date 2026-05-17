@@ -376,6 +376,7 @@ export function PaymentsView() {
                         variant="ghost"
                         size="sm"
                         aria-label="Editar pago"
+                        disabled={payment.estado === "Cancelado"}
                         onClick={() => openEditModal(payment)}
                       >
                         <LuPencil />
