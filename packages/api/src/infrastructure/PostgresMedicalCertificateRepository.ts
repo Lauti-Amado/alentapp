@@ -81,4 +81,52 @@ export class PostgresMedicalCertificateRepository implements MedicalCertificateR
             member_id: medicalCertificate.member_id,
         };
     }
+
+    async darDeBajaCertificado(socioID: string): Promise<void> {
+        // 1. Busca el certificado más reciente
+        const ultimoCertificado = await prisma.medicalCertificate.findFirst({
+           where: {
+              member_id: socioID 
+           },
+           orderBy: {
+              fecha_vencimiento: 'desc'
+            }
+        });
+    
+        // 2. Si existe un registro, lo invalida
+        if (ultimoCertificado) {
+            await prisma.medicalCertificate.update({
+                where: {
+                    id: ultimoCertificado.id
+                },
+                data: {
+                esta_validada: false
+                }
+            });
+        }
+    }
+
+    async darDeAltaCertificado(socioID: string): Promise<void> {
+        // 1. Busca el certificado con la fecha de vencimiento más alta
+        const ultimoCertificado = await prisma.medicalCertificate.findFirst({
+           where: {
+                member_id: socioID 
+           },
+            orderBy: {
+                fecha_vencimiento: 'desc'
+            }
+        });
+
+        // 2. Si existe, lo valida
+        if (ultimoCertificado) {
+            await prisma.medicalCertificate.update({
+                where: {
+                    id: ultimoCertificado.id
+                },
+                data: {
+                    esta_validada: true
+                }
+            });
+        }
+    }
 }
