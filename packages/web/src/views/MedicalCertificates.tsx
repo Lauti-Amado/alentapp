@@ -163,6 +163,16 @@ export function MedicalCertificatesView() {
         }
     };
 
+    const handleDelete = async (id: string,) => {
+        if (!window.confirm(`¿Estás seguro de que deseas eliminar el certificado médico? Esta acción no se puede deshacer.`)) return;
+        try {
+            await medicalCertificatesService.delete(id);
+            fetchMedicalCertificates();
+        } catch (err: any) {
+            alert(err.message || "Error al eliminar el certificado médico");
+        }
+    };
+
     const filteredMedicalCertificate = filterQuery.trim() === ""
         ? medicalCertificates
         : medicalCertificates.filter((m) => {
@@ -373,7 +383,7 @@ export function MedicalCertificatesView() {
                                                 <Button size="sm" variant="outline" onClick={() => openEditModal(m)}>
                                                     <LuPencil /> Editar
                                                 </Button>
-                                                <Button size="sm" colorPalette="red" variant="outline" onClick={() => handleDelete(d.id, d.motivo)}>
+                                                <Button size="sm" colorPalette="red" variant="outline" onClick={() => handleDelete(m.id)}>
                                                     <LuTrash2 /> Eliminar
                                                 </Button>
                                             </HStack>
