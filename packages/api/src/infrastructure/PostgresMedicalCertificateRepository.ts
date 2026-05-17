@@ -45,17 +45,19 @@ export class PostgresMedicalCertificateRepository implements MedicalCertificateR
     }
 
     async findById(id: string): Promise<MedicalCertificateDTO | null> {
+        const medicalCertificate = await prisma.medicalCertificate.findUnique({
+            where: { id },
+        });
 
+        return medicalCertificate ? this.mapToDTO(medicalCertificate) : null;
     }
 
     async update(id: string, data: UpdateMedicalCertificateRequest): Promise<MedicalCertificateDTO> {
         const medicalCertificate = await prisma.medicalCertificate.update({
             where: { id },
             data: {
-                ...(data.member_id !== undefined && { member_id: data.member_id }),
                 ...(data.fecha_emision !== undefined && { fecha_emision: new Date(data.fecha_emision) }),
                 ...(data.fecha_vencimiento !== undefined && { fecha_vencimiento: new Date(data.fecha_vencimiento) }),
-                ...(data.esta_validado !== undefined && { esta_validado: data.esta_validado }),
                 ...(data.licencia_doctor !== undefined && { licencia_doctor: data.licencia_doctor }),
             },
         });
