@@ -24,12 +24,13 @@ import { DeleteMemberUseCase } from './application/DeleteMemberUseCase.js';
 import { CreateMedicalCertificateUseCase } from './application/CreateMedicalCertificateUseCase.js';
 import { GetMedicalCertificatesUseCase } from './application/GetMedicalCertificatesUseCase.js';
 import { UpdateMedicalCertificateUseCase } from './application/UpdateMedicalCertificateUseCase.js';
+import { MedicalCertificateController } from './delivery/MedicalCertificateController.js';
+import { MedicalCertificateValidator } from './domain/services/MedicalCertificateValidator.js';
 import { CreatePaymentUseCase } from './application/CreatePaymentUseCase.js';
 import { GetPaymentsUseCase } from './application/GetPaymentsUseCase.js';
 import { MemberController } from './delivery/MemberController.js';
 import { LockerController } from './delivery/LockerController.js';
 import { DisciplineController } from './delivery/DisciplineController.js';
-import { MedicalCertificateController } from './delivery/MedicalCertificateController.js';
 import { CreateSportUseCase} from './application/CreateSportUseCase.js';
 import { GetSportsUseCase } from './application/GetSportsUseCase.js';
 import { GetSportByNameUseCase } from './application/GetSportByNameUseCase.js';
@@ -90,9 +91,10 @@ export function buildApp() {
     const updateSportUseCase = new UpdateSportUseCase(sportRepo);
     const deleteSportUseCase = new DeleteSportUseCase(sportRepo);
 
+    const medicalCertificateValidator = new MedicalCertificateValidator(medicalCertificateRepo)
     const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
     const getMedicalCertificatesUseCase = new GetMedicalCertificatesUseCase(medicalCertificateRepo);
-    const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
+    const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo, medicalCertificateValidator);
 
     const createPaymentUseCase = new CreatePaymentUseCase(paymentRepo, paymentValidator);
     const getPaymentsUseCase = new GetPaymentsUseCase(paymentRepo);
@@ -159,9 +161,12 @@ export function buildApp() {
     //Medical Certificate
     server.get('/api/v1/medical_certificates', medicalCertificateController.getAll.bind(medicalCertificateController));
     server.post('/api/v1/medical_certificates', medicalCertificateController.create.bind(medicalCertificateController));
+    server.put('/api/v1/medical_certificates', medicalCertificateController.update.bind(medicalCertificateController))
+  
     //Payment
     server.get('/api/v1/pagos', paymentController.getAll.bind(paymentController));
     server.post('/api/v1/pagos', paymentController.create.bind(paymentController));
+  
     // Sports
     server.get('/api/v1/sports', sportController.getAll.bind(sportController));
     server.get('/api/v1/sports/name/:name', sportController.getByName.bind(sportController));
