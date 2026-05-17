@@ -10,7 +10,7 @@ export class MedicalCertificateController {
         private readonly createMedicalCertificateUseCase: CreateMedicalCertificateUseCase,
         private readonly getMedicalCertificatesUseCase: GetMedicalCertificatesUseCase,
         private readonly updateMedicalCertificateUseCase: UpdateMedicalCertificateUseCase,
-        // private readonly deleteMedicalCertificateUseCase: DeleteMedicalCertificateUseCase,
+        private readonly deleteMedicalCertificateUseCase: DeleteMedicalCertificateUseCase,
     ) {}
 
     async getAll(_request: FastifyRequest, reply: FastifyReply) {
@@ -49,9 +49,22 @@ export class MedicalCertificateController {
                 return reply.status(400).send({ error: error.message });
             }
             if (error.message.includes('rango de fechas')) {
-                return reply.status(409).send({ error: error.message });
+                return reply.status(409).send({ error: 'Error de validación de coherencia entre fechas' });
             }
             return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
+        }
+    }
+
+    async delete(
+        request: FastifyRequest<{ Params: { id: string } }>,
+        reply: FastifyReply,
+    ) {
+        try {
+            const { id } = request.params;
+            await this.deleteMedicalCertificateUseCase.execute(id);
+            return reply.status(204).send(); // No Content
+        } catch (error: any) {
+            return reply.status(400).send({ error: error.message });
         }
     }
 }

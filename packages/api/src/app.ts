@@ -25,6 +25,7 @@ import { DeleteMemberUseCase } from './application/DeleteMemberUseCase.js';
 import { CreateMedicalCertificateUseCase } from './application/CreateMedicalCertificateUseCase.js';
 import { GetMedicalCertificatesUseCase } from './application/GetMedicalCertificatesUseCase.js';
 import { UpdateMedicalCertificateUseCase } from './application/UpdateMedicalCertificateUseCase.js';
+import { DeleteMedicalCertificateUseCase } from './application/DeleteMedicalCertificateUseCase.js';
 import { MedicalCertificateController } from './delivery/MedicalCertificateController.js';
 import { MedicalCertificateValidator } from './domain/services/MedicalCertificateValidator.js';
 import { CreatePaymentUseCase } from './application/CreatePaymentUseCase.js';
@@ -99,6 +100,7 @@ export function buildApp() {
     const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
     const getMedicalCertificatesUseCase = new GetMedicalCertificatesUseCase(medicalCertificateRepo);
     const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo, medicalCertificateValidator);
+    const deleteMedicalCertificateUseCase = new DeleteMedicalCertificateUseCase(medicalCertificateRepo)
 
     const createPaymentUseCase = new CreatePaymentUseCase(paymentRepo, paymentValidator);
     const getPaymentsUseCase = new GetPaymentsUseCase(paymentRepo);
@@ -131,7 +133,8 @@ export function buildApp() {
     const medicalCertificateController = new MedicalCertificateController(
         createMedicalCertificateUseCase,
         getMedicalCertificatesUseCase,
-        updateMedicalCertificateUseCase
+        updateMedicalCertificateUseCase,
+        deleteMedicalCertificateUseCase
     )
 
     const sportController = new SportController(
@@ -166,10 +169,12 @@ export function buildApp() {
     server.post('/api/v1/disciplines', disciplineController.create.bind(disciplineController));
     server.put('/api/v1/disciplines/:id', disciplineController.update.bind(disciplineController));
     server.delete('/api/v1/disciplines/:id', disciplineController.delete.bind(disciplineController));
+    
     //Medical Certificate
     server.get('/api/v1/medical_certificates', medicalCertificateController.getAll.bind(medicalCertificateController));
     server.post('/api/v1/medical_certificates', medicalCertificateController.create.bind(medicalCertificateController));
-    server.put('/api/v1/medical_certificates/:id', medicalCertificateController.update.bind(medicalCertificateController))
+    server.put('/api/v1/medical_certificates/:id', medicalCertificateController.update.bind(medicalCertificateController));
+    server.delete('/api/v1/medical_certificates/:id', medicalCertificateController.delete.bind(medicalCertificateController));
   
     //Payment
     server.get('/api/v1/pagos', paymentController.getAll.bind(paymentController));
