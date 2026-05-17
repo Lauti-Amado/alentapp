@@ -32,7 +32,7 @@ En este paquete se define el formato que debe cumplir la request en el caso de m
 *   Request Body (UpdateMedicalCertificate):
 ```ts
 {
-    memberId?: Int.
+    member_id?: Int.
     fecha_emision?: Date.
     fecha_vencimiento?: Date.
     licencia_doctor?: String.
@@ -50,7 +50,7 @@ En este paquete se define el formato que debe cumplir la request en el caso de m
 ## Casos de Borde y Errores
 | Escenario                   | Resultado Esperado                            | Código HTTP               |
 | ----------------------------| --------------------------------------------- | ------------------------- |
-| MemberID inexistente     | [Error de miembro no existente]       | 400 Bad Request             |
+| Member_id inexistente     | [Error de miembro no existente]       | 400 Bad Request             |
 | Fecha vencimiento < Fecha emision | [Error de validación de coherencia entre fechas]       | 409 Conflict              |
 | Error de conexión a DB     | Mensaje: "Error interno, reintente más tarde" | 500 Internal Server Error |
 
@@ -58,6 +58,6 @@ En este paquete se define el formato que debe cumplir la request en el caso de m
 
 1. Actualizar las interfaces en el paquete `@alentapp/shared` (`UpdateMedicalCertificateRequest`).
 2. Agregar al `MedicalCertificateRepository` el método `update`.
-3. Implementar la lógica en `UpdateMedicalCertificateUseCase` asegurando la validación de fechas con `date-fns` en el MedicalCertificateValidator.
+3. Implementar la lógica en `UpdateMedicalCertificateUseCase` asegurando la validación de fechas con `date-fns` en el `MedicalCertificateValidator`.
 4. Crear la ruta `PUT` en el controlador y enlazarla a la app de Fastify.
 5. Consumir el endpoint desde el Frontend y reutilizar el modal de creación para permitir la edición.

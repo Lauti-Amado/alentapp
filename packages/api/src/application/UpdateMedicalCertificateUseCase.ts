@@ -18,7 +18,7 @@ export class UpdateMedicalCertificateUseCase {
             throw new Error('El miembro no existe');
         }
 
-        // 2. Verificar que la sanción exista
+        // 2. Verificar que el certificado médico existe
         const existing = await this.medicalCertificateRepo.findById(id);
         if (!existing) {
             throw new Error('El registro del certificado médico no existe');
