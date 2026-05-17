@@ -58,6 +58,15 @@ export interface CreatePaymentRequest {
   fecha_vencimiento: string; // ISO Date String (YYYY-MM-DD)
 }
 
+export interface UpdatePaymentRequest {
+  monto?: number;
+  mes?: number;
+  anio?: number;
+  fecha_vencimiento?: string; // ISO Date String (YYYY-MM-DD)
+  fecha_pago?: string; // ISO Date String (YYYY-MM-DD)
+  estado?: PaymentStatus;
+}
+
 
 // ==========================================
 // Locker
@@ -83,6 +92,7 @@ export interface UpdateLockerRequest {
     ubicacion?: string;
     member_id?: string | null;
 }
+
 // ==========================================
 // Discipline
 // ==========================================
