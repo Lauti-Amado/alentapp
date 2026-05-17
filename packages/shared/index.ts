@@ -107,6 +107,14 @@ export interface CreateSportRequest {
     Require_certificado_medico: boolean;
 }
 
+export interface UpdateSportRequest { 
+    Cupo_maximo?:          number
+    Descripcion?:          string
+}
+
+
+
+
 
 // ==========================================
 // MedicalCertificate
