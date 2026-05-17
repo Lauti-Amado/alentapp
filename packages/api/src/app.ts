@@ -70,7 +70,7 @@ export function buildApp() {
     const updateMemberUseCase = new UpdateMemberUseCase(memberRepo, memberValidator);
     const deleteMemberUseCase = new DeleteMemberUseCase(memberRepo);
     
-    const createLockerUseCase = new CreateLocker(lockerRepo);
+    const createLockerUseCase = new CreateLocker(lockerRepo, lockerValidator);
     const getLockersUseCase = new GetLockers(lockerRepo);
     const updateLockerUseCase = new UpdateLocker(lockerRepo, lockerValidator);
     const deleteLockerUseCase = new DeleteLocker(lockerRepo);
