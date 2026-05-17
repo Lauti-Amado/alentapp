@@ -4,7 +4,9 @@ import { PostgresMemberRepository } from './infrastructure/PostgresMemberReposit
 import { PostgresLockerRepository } from './infrastructure/PostgresLockerRepository.js';
 import { PostgresDisciplineRepository } from './infrastructure/PostgresDisciplineRepository.js';
 import { PostgresMedicalCertificateRepository } from './infrastructure/PostgresMedicalCertificateRepository.js';
+import { PostgresPaymentRepository } from './infrastructure/PostgresPaymentRepository.js';
 import { MemberValidator } from './domain/services/MemberValidator.js';
+import { PaymentValidator } from './domain/services/PaymentValidator.js';
 import { CreateLocker } from './application/CreateLocker.js';
 import { GetLockers } from './application/GetLockers.js';
 import { UpdateLocker } from './application/UpdateLocker.js';
@@ -20,10 +22,13 @@ import { UpdateMemberUseCase } from './application/UpdateMemberUseCase.js';
 import { DeleteMemberUseCase } from './application/DeleteMemberUseCase.js';
 import { CreateMedicalCertificateUseCase } from './application/CreateMedicalCertificateUseCase.js';
 import { GetMedicalCertificatesUseCase } from './application/GetMedicalCertificatesUseCase.js';
+import { CreatePaymentUseCase } from './application/CreatePaymentUseCase.js';
+import { GetPaymentsUseCase } from './application/GetPaymentsUseCase.js';
 import { MemberController } from './delivery/MemberController.js';
 import { LockerController } from './delivery/LockerController.js';
 import { DisciplineController } from './delivery/DisciplineController.js';
 import { MedicalCertificateController } from './delivery/MedicalCertificateController.js';
+import { PaymentController } from './delivery/PaymentController.js';
 
 export function buildApp() {
     const server = Fastify({
@@ -50,6 +55,8 @@ export function buildApp() {
     const lockerRepo = new PostgresLockerRepository();
     const disciplineRepo = new PostgresDisciplineRepository();
     const medicalCertificateRepo = new PostgresMedicalCertificateRepository();
+    const paymentRepo = new PostgresPaymentRepository();
+    const paymentValidator = new PaymentValidator(memberRepo);
     
     const createMemberUseCase = new CreateMemberUseCase(memberRepo, memberValidator);
     const getMembersUseCase = new GetMembersUseCase(memberRepo);
@@ -69,6 +76,9 @@ export function buildApp() {
 
     const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
     const getMedicalCertificatesUseCase = new GetMedicalCertificatesUseCase(medicalCertificateRepo);
+
+    const createPaymentUseCase = new CreatePaymentUseCase(paymentRepo, paymentValidator);
+    const getPaymentsUseCase = new GetPaymentsUseCase(paymentRepo);
 
     const memberController = new MemberController(
         createMemberUseCase, 
@@ -97,6 +107,11 @@ export function buildApp() {
         getMedicalCertificatesUseCase
     )
 
+    const paymentController = new PaymentController(
+        createPaymentUseCase,
+        getPaymentsUseCase
+    );
+
     //Miembro
     server.get('/api/v1/socios', memberController.getAll.bind(memberController));
     server.get('/api/v1/socios/dni/:dni', memberController.getByDni.bind(memberController));
@@ -116,6 +131,9 @@ export function buildApp() {
     //Medical Certificate
     server.get('/api/v1/medical_certificates', medicalCertificateController.getAll.bind(medicalCertificateController));
     server.post('/api/v1/medical_certificates', medicalCertificateController.create.bind(medicalCertificateController));
+    //Payment
+    server.get('/api/v1/pagos', paymentController.getAll.bind(paymentController));
+    server.post('/api/v1/pagos', paymentController.create.bind(paymentController));
 
     server.get('/', async (req, rep) => {
         rep.status(200).send({ msg: 'asd' })
