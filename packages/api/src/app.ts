@@ -5,7 +5,9 @@ import { PostgresLockerRepository } from './infrastructure/PostgresLockerReposit
 import { PostgresDisciplineRepository } from './infrastructure/PostgresDisciplineRepository.js';
 import { PostgresMedicalCertificateRepository } from './infrastructure/PostgresMedicalCertificateRepository.js';
 import { PostgresSportRepository } from './infrastructure/PostgresSportRepository.js';
+import { PostgresPaymentRepository } from './infrastructure/PostgresPaymentRepository.js';
 import { MemberValidator } from './domain/services/MemberValidator.js';
+import { PaymentValidator } from './domain/services/PaymentValidator.js';
 import { CreateLocker } from './application/CreateLocker.js';
 import { GetLockers } from './application/GetLockers.js';
 import { UpdateLocker } from './application/UpdateLocker.js';
@@ -22,6 +24,8 @@ import { DeleteMemberUseCase } from './application/DeleteMemberUseCase.js';
 import { CreateMedicalCertificateUseCase } from './application/CreateMedicalCertificateUseCase.js';
 import { GetMedicalCertificatesUseCase } from './application/GetMedicalCertificatesUseCase.js';
 import { UpdateMedicalCertificateUseCase } from './application/UpdateMedicalCertificateUseCase.js';
+import { CreatePaymentUseCase } from './application/CreatePaymentUseCase.js';
+import { GetPaymentsUseCase } from './application/GetPaymentsUseCase.js';
 import { MemberController } from './delivery/MemberController.js';
 import { LockerController } from './delivery/LockerController.js';
 import { DisciplineController } from './delivery/DisciplineController.js';
@@ -32,7 +36,7 @@ import { GetSportByNameUseCase } from './application/GetSportByNameUseCase.js';
 import { UpdateSportUseCase } from './application/UpdateSportUseCase.js';
 import { DeleteSportUseCase } from './application/DeleteSportUseCase.js';
 import { SportController } from './delivery/SportController.js';
-
+import { PaymentController } from './delivery/PaymentController.js';
 
 export function buildApp() {
     const server = Fastify({
@@ -56,11 +60,13 @@ export function buildApp() {
 
     const memberRepo = new PostgresMemberRepository();
     const memberValidator = new MemberValidator(memberRepo);
+
     const lockerRepo = new PostgresLockerRepository();
     const disciplineRepo = new PostgresDisciplineRepository();
-
     const medicalCertificateRepo = new PostgresMedicalCertificateRepository();
     const sportRepo = new PostgresSportRepository();
+    const paymentRepo = new PostgresPaymentRepository();
+    const paymentValidator = new PaymentValidator(memberRepo);
     
     const createMemberUseCase = new CreateMemberUseCase(memberRepo, memberValidator);
     const getMembersUseCase = new GetMembersUseCase(memberRepo);
@@ -86,7 +92,10 @@ export function buildApp() {
 
     const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
     const getMedicalCertificatesUseCase = new GetMedicalCertificatesUseCase(medicalCertificateRepo);
-    const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo)
+    const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
+
+    const createPaymentUseCase = new CreatePaymentUseCase(paymentRepo, paymentValidator);
+    const getPaymentsUseCase = new GetPaymentsUseCase(paymentRepo);
 
     const memberController = new MemberController(
         createMemberUseCase, 
@@ -126,6 +135,11 @@ export function buildApp() {
 );
 
 
+    const paymentController = new PaymentController(
+        createPaymentUseCase,
+        getPaymentsUseCase
+    );
+
     //Miembro
     server.get('/api/v1/socios', memberController.getAll.bind(memberController));
     server.get('/api/v1/socios/dni/:dni', memberController.getByDni.bind(memberController));
@@ -142,11 +156,12 @@ export function buildApp() {
     server.post('/api/v1/disciplines', disciplineController.create.bind(disciplineController));
     server.put('/api/v1/disciplines/:id', disciplineController.update.bind(disciplineController));
     server.delete('/api/v1/disciplines/:id', disciplineController.delete.bind(disciplineController));
-
     //Medical Certificate
     server.get('/api/v1/medical_certificates', medicalCertificateController.getAll.bind(medicalCertificateController));
     server.post('/api/v1/medical_certificates', medicalCertificateController.create.bind(medicalCertificateController));
-
+    //Payment
+    server.get('/api/v1/pagos', paymentController.getAll.bind(paymentController));
+    server.post('/api/v1/pagos', paymentController.create.bind(paymentController));
     // Sports
     server.get('/api/v1/sports', sportController.getAll.bind(sportController));
     server.get('/api/v1/sports/name/:name', sportController.getByName.bind(sportController));
