@@ -33,11 +33,7 @@ export class MedicalCertificateController {
             if (error.message.includes('no existe')) {
                 return reply.status(404).send({ error: error.message });
             }
-            if (error.message.includes('posterior')) {
-                return reply.status(400).send({ error: error.message });
-            }
-            //return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
-            return reply.status(500).send({ error: error.message });
+            return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
         }
     }
 
@@ -50,9 +46,6 @@ export class MedicalCertificateController {
             return reply.status(200).send({ data: certificadoMedico });
         } catch (error: any) {
             if (error.message.includes('no existe')) {
-                return reply.status(400).send({ error: error.message });
-            }
-            if (error.message.includes('miembro')) {
                 return reply.status(400).send({ error: error.message });
             }
             if (error.message.includes('rango de fechas')) {

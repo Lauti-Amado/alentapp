@@ -97,7 +97,7 @@ export function buildApp() {
     const medicalCertificateValidator = new MedicalCertificateValidator(medicalCertificateRepo)
     const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
     const getMedicalCertificatesUseCase = new GetMedicalCertificatesUseCase(medicalCertificateRepo);
-    const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo, medicalCertificateValidator);
+    const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo, medicalCertificateValidator);
 
     const createPaymentUseCase = new CreatePaymentUseCase(paymentRepo, paymentValidator);
     const getPaymentsUseCase = new GetPaymentsUseCase(paymentRepo);
@@ -166,7 +166,7 @@ export function buildApp() {
     //Medical Certificate
     server.get('/api/v1/medical_certificates', medicalCertificateController.getAll.bind(medicalCertificateController));
     server.post('/api/v1/medical_certificates', medicalCertificateController.create.bind(medicalCertificateController));
-    server.put('/api/v1/medical_certificates', medicalCertificateController.update.bind(medicalCertificateController))
+    server.put('/api/v1/medical_certificates/:id', medicalCertificateController.update.bind(medicalCertificateController))
   
     //Payment
     server.get('/api/v1/pagos', paymentController.getAll.bind(paymentController));
