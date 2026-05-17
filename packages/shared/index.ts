@@ -115,16 +115,22 @@ export interface CreateSportRequest {
 export interface MedicalCertificateDTO {
   id: string;
   member_id: string;
-  fecha_emision: Date;
-  fecha_vencimiento: Date;
+  fecha_emision: string; // ISO Date String (YYYY-MM-DD)
+  fecha_vencimiento: string; // ISO Date String (YYYY-MM-DD)
   esta_validado: boolean;
   licencia_doctor: string;
 }
 
 export interface CreateMedicalCertificateRequest {
   member_id: string;
-  fecha_emision: Date;
-  fecha_vencimiento: Date;
+  fecha_emision: string; // ISO Date String (YYYY-MM-DD)
+  fecha_vencimiento: string; // ISO Date String (YYYY-MM-DD)
   licencia_doctor: string;
 }
 
+export interface UpdateMedicalCertificateRequest {
+  member_id?: string;
+  fecha_emision?: string; // ISO Date String (YYYY-MM-DD)
+  fecha_vencimiento?: string; // ISO Date String (YYYY-MM-DD)
+  licencia_doctor?: string;
+}
