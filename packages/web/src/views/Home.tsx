@@ -47,12 +47,21 @@ export function HomeView() {
           icon={LuBan}
         />
 
+
         <SectionCard 
           title="Certificados médicos"
           description="Administra los certificados médicos de los socios."
           to="/medical_certificates"
           icon={LuBan}
         />
+
+         <SectionCard 
+          title="Deportes"
+          description="Administra los deportes ofrecidos."
+          to="/deportes"
+          icon={LuBan}
+        />
+
        
         {/* Future sections can be added here following the same pattern */}
         <Box 

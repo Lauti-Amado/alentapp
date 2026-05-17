@@ -4,6 +4,7 @@ import { PostgresMemberRepository } from './infrastructure/PostgresMemberReposit
 import { PostgresLockerRepository } from './infrastructure/PostgresLockerRepository.js';
 import { PostgresDisciplineRepository } from './infrastructure/PostgresDisciplineRepository.js';
 import { PostgresMedicalCertificateRepository } from './infrastructure/PostgresMedicalCertificateRepository.js';
+import { PostgresSportRepository } from './infrastructure/PostgresSportRepository.js';
 import { MemberValidator } from './domain/services/MemberValidator.js';
 import { CreateLocker } from './application/CreateLocker.js';
 import { GetLockers } from './application/GetLockers.js';
@@ -25,6 +26,12 @@ import { MemberController } from './delivery/MemberController.js';
 import { LockerController } from './delivery/LockerController.js';
 import { DisciplineController } from './delivery/DisciplineController.js';
 import { MedicalCertificateController } from './delivery/MedicalCertificateController.js';
+import { CreateSportUseCase} from './application/CreateSportUseCase.js';
+import { GetSportsUseCase } from './application/GetSportsUseCase.js';
+import { GetSportByNameUseCase } from './application/GetSportByNameUseCase.js';
+import { UpdateSportUseCase } from './application/UpdateSportUseCase.js';
+import { SportController } from './delivery/SportController.js';
+
 
 export function buildApp() {
     const server = Fastify({
@@ -50,7 +57,9 @@ export function buildApp() {
     const memberValidator = new MemberValidator(memberRepo);
     const lockerRepo = new PostgresLockerRepository();
     const disciplineRepo = new PostgresDisciplineRepository();
+
     const medicalCertificateRepo = new PostgresMedicalCertificateRepository();
+    const sportRepo = new PostgresSportRepository();
     
     const createMemberUseCase = new CreateMemberUseCase(memberRepo, memberValidator);
     const getMembersUseCase = new GetMembersUseCase(memberRepo);
@@ -67,6 +76,11 @@ export function buildApp() {
     const getDisciplinesUseCase = new GetDisciplinesUseCase(disciplineRepo);
     const updateDisciplineUseCase = new UpdateDisciplineUseCase(disciplineRepo);
     const deleteDisciplineUseCase = new DeleteDisciplineUseCase(disciplineRepo);
+
+    const createSportUseCase = new CreateSportUseCase(sportRepo);
+    const getSportsUseCase = new GetSportsUseCase(sportRepo);
+    const getSportByNameUseCase = new GetSportByNameUseCase(sportRepo);
+    const updateSportUseCase = new UpdateSportUseCase(sportRepo);
 
     const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
     const getMedicalCertificatesUseCase = new GetMedicalCertificatesUseCase(medicalCertificateRepo);
@@ -94,11 +108,20 @@ export function buildApp() {
         deleteDisciplineUseCase
     );
 
+
     const medicalCertificateController = new MedicalCertificateController(
         createMedicalCertificateUseCase,
         getMedicalCertificatesUseCase,
         updateMedicalCertificateUseCase
     )
+
+    const sportController = new SportController(
+       createSportUseCase,
+       getSportsUseCase,
+       getSportByNameUseCase,
+       updateSportUseCase
+);
+
 
     //Miembro
     server.get('/api/v1/socios', memberController.getAll.bind(memberController));
@@ -116,9 +139,16 @@ export function buildApp() {
     server.post('/api/v1/disciplines', disciplineController.create.bind(disciplineController));
     server.put('/api/v1/disciplines/:id', disciplineController.update.bind(disciplineController));
     server.delete('/api/v1/disciplines/:id', disciplineController.delete.bind(disciplineController));
+
     //Medical Certificate
     server.get('/api/v1/medical_certificates', medicalCertificateController.getAll.bind(medicalCertificateController));
     server.post('/api/v1/medical_certificates', medicalCertificateController.create.bind(medicalCertificateController));
+
+    // Sports
+    server.get('/api/v1/sports', sportController.getAll.bind(sportController));
+    server.get('/api/v1/sports/name/:name', sportController.getByName.bind(sportController));
+    server.post('/api/v1/sports', sportController.create.bind(sportController));
+    server.put('/api/v1/sports/:id', sportController.update.bind(sportController));
 
     server.get('/', async (req, rep) => {
         rep.status(200).send({ msg: 'asd' })
