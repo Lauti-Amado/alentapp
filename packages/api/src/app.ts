@@ -143,6 +143,7 @@ export function buildApp() {
     //Medical Certificate
     server.get('/api/v1/medical_certificates', medicalCertificateController.getAll.bind(medicalCertificateController));
     server.post('/api/v1/medical_certificates', medicalCertificateController.create.bind(medicalCertificateController));
+    server.put('/api/v1/medical_certificates', medicalCertificateController.update.bind(medicalCertificateController))
 
     // Sports
     server.get('/api/v1/sports', sportController.getAll.bind(sportController));

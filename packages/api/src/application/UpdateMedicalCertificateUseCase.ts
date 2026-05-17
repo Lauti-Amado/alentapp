@@ -1,12 +1,13 @@
-import { isAfter } from 'date-fns';
 import { MedicalCertificateRepository } from '../domain/MedicalCertificateRepository.js';
 import { MedicalCertificateDTO, UpdateMedicalCertificateRequest } from '@alentapp/shared';
 import { MemberRepository } from '../domain/MemberRepository.js';
+import { MedicalCertificateValidator } from '../domain/services/MedicalCertificateValidator.js';
 
 export class UpdateMedicalCertificateUseCase {
     constructor(
         private readonly medicalCertificateRepo: MedicalCertificateRepository,
         private readonly memberRepository: MemberRepository,
+        private readonly medicalCertificateValidator: MedicalCertificateValidator
     ) {}
 
     async execute(id: string, data: UpdateMedicalCertificateRequest): Promise<MedicalCertificateDTO> {
@@ -25,12 +26,9 @@ export class UpdateMedicalCertificateUseCase {
 
         // 3. Re-validar rango de fechas si se modifica alguna
         if (data.fecha_emision !== undefined || data.fecha_vencimiento !== undefined) {
-            const emision = new Date(data.fecha_emision ?? existing.fecha_emision);
-            const vencimiento = new Date(data.fecha_vencimiento ?? existing.fecha_vencimiento);
-            if (!isAfter(vencimiento, emision)) {
-                throw new Error('Error al modificar el certificado médico. El rango de fechas introducido es inválido');
-            }
+           await this.medicalCertificateValidator.validarFechas(id, data)
         }
+
         
         let finalData = { ...data };
 
