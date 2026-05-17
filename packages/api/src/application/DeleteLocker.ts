@@ -5,8 +5,8 @@ export class DeleteLocker {
 
     async execute(id: string): Promise<void> {
         // Validar existencia del locker
-        const locker = await this.lockerRepository.findById(id);
-        if (!locker) {
+        const existingLocker = await this.lockerRepository.findById(id);
+        if (!existingLocker) {
             throw new Error("El locker solicitado no existe");
         }
 

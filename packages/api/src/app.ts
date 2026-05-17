@@ -4,6 +4,7 @@ import { PostgresMemberRepository } from './infrastructure/PostgresMemberReposit
 import { PostgresLockerRepository } from './infrastructure/PostgresLockerRepository.js';
 import { PostgresDisciplineRepository } from './infrastructure/PostgresDisciplineRepository.js';
 import { MemberValidator } from './domain/services/MemberValidator.js';
+import { LockerValidator } from './domain/services/LockerValidator.js';
 import { CreateLocker } from './application/CreateLocker.js';
 import { GetLockers } from './application/GetLockers.js';
 import { UpdateLocker } from './application/UpdateLocker.js';
@@ -44,6 +45,7 @@ export function buildApp() {
     const memberRepo = new PostgresMemberRepository();
     const memberValidator = new MemberValidator(memberRepo);
     const lockerRepo = new PostgresLockerRepository();
+    const lockerValidator = new LockerValidator(lockerRepo);
     const disciplineRepo = new PostgresDisciplineRepository();
     
     const createMemberUseCase = new CreateMemberUseCase(memberRepo, memberValidator);
@@ -54,7 +56,7 @@ export function buildApp() {
     
     const createLockerUseCase = new CreateLocker(lockerRepo);
     const getLockersUseCase = new GetLockers(lockerRepo);
-    const updateLockerUseCase = new UpdateLocker(lockerRepo);
+    const updateLockerUseCase = new UpdateLocker(lockerRepo, lockerValidator);
     const deleteLockerUseCase = new DeleteLocker(lockerRepo);
 
     const createDisciplineUseCase = new CreateDisciplineUseCase(disciplineRepo, memberRepo);
