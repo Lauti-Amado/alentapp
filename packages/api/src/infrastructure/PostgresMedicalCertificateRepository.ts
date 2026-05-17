@@ -82,7 +82,7 @@ export class PostgresMedicalCertificateRepository implements MedicalCertificateR
         };
     }
 
-    async darDeBajaCertificado(socioID: string): Promise<void> {
+    async darDeBajaCertificadoPorSocio(socioID: string, fecha_vencimiento_actual: Date): Promise<void> {
         // 1. Busca el certificado más reciente
         const ultimoCertificado = await prisma.medicalCertificate.findFirst({
            where: {
@@ -92,6 +92,10 @@ export class PostgresMedicalCertificateRepository implements MedicalCertificateR
               fecha_vencimiento: 'desc'
             }
         });
+
+        if ((ultimoCertificado != null) && ultimoCertificado.fecha_vencimiento > fecha_vencimiento_actual) {
+            return;
+        }
     
         // 2. Si existe un registro, lo invalida
         if (ultimoCertificado) {
