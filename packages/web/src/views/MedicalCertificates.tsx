@@ -59,7 +59,7 @@ export function MedicalCertificatesView() {
         setEditForm({
             fecha_emision: m.fecha_emision.split("T")[0],
             fecha_vencimiento: m.fecha_vencimiento.split("T")[0],
-            esta_validado: m.esta_validado,
+            esta_validada: m.esta_validada,
         });
         setIsEditOpen(true);
     };
@@ -155,8 +155,8 @@ export function MedicalCertificatesView() {
         try {
             await medicalCertificatesService.update(editingId, {
                 ...editForm,
-                ...(editForm.fechaInicio && { fechaInicio: new Date(editForm.fechaInicio).toISOString() }),
-                ...(editForm.fechaFin && { fechaFin: new Date(editForm.fechaFin).toISOString() }),
+                ...(editForm.fecha_emision && { fecha_emision: new Date(editForm.fecha_emision).toISOString() }),
+                ...(editForm.fecha_vencimiento && { fecha_vencimiento: new Date(editForm.fecha_vencimiento).toISOString() }),
             });
             setIsEditOpen(false);
             fetchMedicalCertificates();
@@ -344,7 +344,7 @@ export function MedicalCertificatesView() {
                     ) : filteredMedicalCertificate.length === 0 ? (
                         <Center h="200px">
                             <Text color="fg.muted">
-                                {filterQuery.trim() ? "No se encontraron certificados méidocs para el socio buscado." : "No hay certificados médicos registradas."}
+                                {filterQuery.trim() ? "No se encontraron certificados médicos para el socio buscado." : "No hay certificados médicos registradas."}
                             </Text>
                         </Center>
                     ) : (
@@ -354,18 +354,23 @@ export function MedicalCertificatesView() {
                                     <Table.ColumnHeader py="4">Socio</Table.ColumnHeader>
                                     <Table.ColumnHeader py="4">Fecha Emisión</Table.ColumnHeader>
                                     <Table.ColumnHeader py="4">Fecha Vencimiento</Table.ColumnHeader>
-                                    <Table.ColumnHeader py="4">Está validado</Table.ColumnHeader>
+                                    <Table.ColumnHeader py="4">Está validada</Table.ColumnHeader>
                                     <Table.ColumnHeader py="4">Licencia médico</Table.ColumnHeader>
                                     <Table.ColumnHeader py="4" textAlign="end">Acciones</Table.ColumnHeader>
                                 </Table.Row>
                             </Table.Header>
-                            <Table.Body>3
+                            <Table.Body>
                                 {filteredMedicalCertificate.map((m) => {
                                     return (
                                     <Table.Row key={m.id} _hover={{ bg: "bg.muted/30" }}>
-                                        <Table.Cell fontWeight="medium" color="fg.emphasized">{membersMap.get(m.memberId)?.name ?? m.memberId}</Table.Cell>
+                                        <Table.Cell fontWeight="medium" color="fg.emphasized">{membersMap.get(m.member_id)?.name ?? m.member_id}</Table.Cell>
                                         <Table.Cell color="fg.muted">{formatDate(m.fecha_emision)}</Table.Cell>
                                         <Table.Cell color="fg.muted">{formatDate(m.fecha_vencimiento)}</Table.Cell>
+                                        <Table.Cell>
+                                            <Badge colorPalette={m.esta_validada ? "green" : "orange"}>
+                                                {m.esta_validada ? "Si" : "No"}
+                                            </Badge>
+                                        </Table.Cell>
                                         <Table.Cell fontWeight="semibold" color="fg.emphasized">{m.licencia_doctor}</Table.Cell>
                                         <Table.Cell textAlign="end">
                                             <HStack gap="2" justify="end">

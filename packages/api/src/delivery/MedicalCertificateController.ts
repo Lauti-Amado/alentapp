@@ -36,7 +36,8 @@ export class MedicalCertificateController {
             if (error.message.includes('posterior')) {
                 return reply.status(400).send({ error: error.message });
             }
-            return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
+            //return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
+            return reply.status(500).send({ error: error.message });
         }
     }
 
