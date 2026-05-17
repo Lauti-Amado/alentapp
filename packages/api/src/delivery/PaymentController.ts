@@ -97,7 +97,10 @@ export class PaymentController {
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : 'Error interno, reintente más tarde';
 
-            if (message === 'El pago ya fue dado de baja') {
+            if (
+                message === 'El pago ya fue dado de baja' ||
+                message === 'Solo se pueden dar de baja pagos cancelados'
+            ) {
                 return reply.status(409).send({ error: message });
             }
 

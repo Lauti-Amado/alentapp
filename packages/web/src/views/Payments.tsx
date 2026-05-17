@@ -405,6 +405,7 @@ export function PaymentsView() {
                         size="sm"
                         colorPalette="red"
                         aria-label="Dar de baja pago"
+                        disabled={payment.estado !== "Cancelado"}
                         onClick={() => handleSoftDeletePayment(payment)}
                       >
                         <LuTrash2 />

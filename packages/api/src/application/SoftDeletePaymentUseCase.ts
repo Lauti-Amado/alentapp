@@ -13,6 +13,10 @@ export class SoftDeletePaymentUseCase {
             throw new Error('El pago ya fue dado de baja');
         }
 
+        if (existingPayment.estado !== 'Cancelado') {
+            throw new Error('Solo se pueden dar de baja pagos cancelados');
+        }
+
         await this.paymentRepository.softDelete(id);
     }
 }
