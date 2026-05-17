@@ -164,7 +164,6 @@ export interface CreateMedicalCertificateRequest {
 }
 
 export interface UpdateMedicalCertificateRequest {
-  member_id?: string;
   fecha_emision?: string; // ISO Date String (YYYY-MM-DD)
   fecha_vencimiento?: string; // ISO Date String (YYYY-MM-DD)
   licencia_doctor?: string;
