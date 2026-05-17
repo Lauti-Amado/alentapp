@@ -1,6 +1,5 @@
 import { Provider } from './components/ui/provider';
 import { Box, Container, Flex, Text, HStack } from '@chakra-ui/react';
-
 import { Outlet, Link as RouterLink } from "react-router";
 
 function Layout() {
@@ -32,8 +31,8 @@ function Layout() {
                             >
                                 Miembros
                             </Text>
-                            
                         </RouterLink>
+                        
                         <RouterLink to="/payments">
                             <Text 
                                 fontWeight="semibold" 
@@ -58,6 +57,7 @@ function Layout() {
                                 Lockers
                             </Text>
                         </RouterLink>
+                        
                         <RouterLink to="/disciplines">
                             <Text 
                                 fontWeight="semibold" 
@@ -72,7 +72,7 @@ function Layout() {
                         </RouterLink>
 
                         <RouterLink to="/medical_certificates">
-                               <Text
+                            <Text
                                 fontWeight="semibold"
                                 fontSize="sm"
                                 textTransform="uppercase"
@@ -80,7 +80,7 @@ function Layout() {
                                 color="fg.muted"
                                 _hover={{ color: "blue.500", textDecoration: "none" }}
                             >
-                                Deportes
+                                Certificados médicos
                             </Text>
                         </RouterLink>
 
@@ -93,13 +93,9 @@ function Layout() {
                                 color="fg.muted"
                                 _hover={{ color: "blue.500", textDecoration: "none" }}
                             >
-                                Certificados médicos
-                            </Text>
-                        </RouterLink>
                                 Deportes
                             </Text>
                         </RouterLink>
-                       
                     </HStack>
                 </Flex>
             </Box>
@@ -109,4 +105,5 @@ function Layout() {
         </Provider>
     );
 }
+
 export default Layout;
