@@ -5,6 +5,7 @@ import { LuLock } from "react-icons/lu";
 import { LuFileHeart } from "react-icons/lu";
 import { SectionCard } from "../components/SectionCard";
 import { LuTrophy } from "react-icons/lu";
+import { LuReceipt } from "react-icons/lu";
 
 export function HomeView() {
   return (
@@ -35,7 +36,14 @@ export function HomeView() {
           icon={LuUsers}
         />
 
-      <SectionCard 
+        <SectionCard 
+          title="Pagos"
+          description="Administra los pagos de los socios."
+          to="/payments"
+          icon={LuReceipt}
+        />
+
+        <SectionCard 
           title="Lockers"
           description="Administra el inventario de casilleros, asignaciones y estado de mantenimiento."
           to="/lockers"
