@@ -49,7 +49,7 @@ export class MedicalCertificateController {
                 return reply.status(404).send({ error: 'Error de inexistencia del certificado médico'  });
             }
             if (error.message.includes('rango de fechas')) {
-                return reply.status(409).send({ error: 'Error de validación de coherencia entre fechas' });
+                return reply.status(400).send({ error: 'Error de validación de coherencia entre fechas' });
             }
             // return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
             return reply.status(500).send({ error: error.message });
