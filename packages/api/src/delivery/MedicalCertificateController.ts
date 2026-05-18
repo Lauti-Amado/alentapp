@@ -31,8 +31,12 @@ export class MedicalCertificateController {
             return reply.status(201).send({ data: certificado });
         } catch (error: any) {
             if (error.message.includes('no existe')) {
-                return reply.status(404).send({ error: error.message });
+                return reply.status(404).send({ error: 'Error de miembro no existente' });
             }
+            if (error.message.includes('emision y vencimiento')) {
+                return reply.status(400).send({ error: 'Error de validación de coherencia entre fechas' });
+            }
+
             return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
         }
     }
