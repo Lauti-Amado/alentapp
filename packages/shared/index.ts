@@ -63,7 +63,7 @@ export interface UpdatePaymentRequest {
   mes?: number;
   anio?: number;
   fecha_vencimiento?: string; // ISO Date String (YYYY-MM-DD)
-  fecha_pago?: string; // ISO Date String (YYYY-MM-DD)
+  fecha_pago?: string | null; // ISO Date String (YYYY-MM-DD)
   estado?: PaymentStatus;
 }
 
