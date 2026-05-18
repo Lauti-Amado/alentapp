@@ -50,7 +50,7 @@ En este paquete se define el formato que debe cumplir la request en el caso de m
 | Escenario                   | Resultado Esperado                            | Código HTTP               |
 | ----------------------------| --------------------------------------------- | ------------------------- |
 | Certificado médico inexistente | [Error de inexistencia del certificado médico]       | 404 Not Found           |
-| Fecha vencimiento < Fecha emision | [Error de validación de coherencia entre fechas]       | 409 Conflict              |
+| Fecha vencimiento < Fecha emision | [Error de validación de coherencia entre fechas]       | 400 Bad Request              |
 | Error de conexión a DB     | Mensaje: "Error interno, reintente más tarde" | 500 Internal Server Error |
 
 ## Plan de Implementación
