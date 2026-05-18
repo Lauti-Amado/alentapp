@@ -55,7 +55,7 @@ Definiremos los tipos en el paquete compartido para asegurar la sincronización
  
 ## Componentes de Arquitectura Hexagonal
 1. Puerto: ```SportRepository``` (Interface en el Dominio).
-2. Caso de uso: ```CreateSport``` (Logica de aplicación que verifica si el nombre del deporte ya existe antes de llamar al repositorio).
+2. Caso de uso: ```CreateSportUseCase``` (Logica de aplicación que verifica si el nombre del deporte ya existe antes de llamar al repositorio).
 3. Adaptador de Salida: ```PostgresSportRepository```.
 4. Adaptador de Entrada: ```SportController``` (ruta HTTP).
 

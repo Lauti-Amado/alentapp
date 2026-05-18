@@ -54,4 +54,4 @@ Al tratarse de una operación destructiva que solo requiere conocer el identific
 2. Crear la lógica de negocio en ```DeleteSportUseCase.```
 3. Crear el endpoint ```DELETE /api/v1/sports/:id``` en el ```SportController``` y registrarlo en ```app.ts```.
 4. Añadir el método ```delete``` al servicio Frontend (```sports.ts```).
-5. Enlazar el botón de eliminación en ```SportsView.tsx``` agregando la confirmación del navegador (```window.confirm```) antes de hacer la llamada. 
+5. Enlazar el botón de eliminación en ```Sports.tsx``` agregando la confirmación del navegador (```window.confirm```) antes de hacer la llamada. 
