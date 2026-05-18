@@ -29,15 +29,16 @@ export class DisciplineController {
         try {
             const sancion = await this.createDisciplineUseCase.execute(request.body);
             return reply.status(201).send({ data: sancion });
-        } catch (error: any) {
-            if (error.message.includes('no existe')) {
-                return reply.status(404).send({ error: error.message });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Error interno";
+            if (errorMessage.includes('no existe')) {
+                return reply.status(404).send({ error: errorMessage });
             }
-            if (error.message.includes('suspensión total')) {
-                return reply.status(409).send({ error: error.message });
+            if (errorMessage.includes('suspensión total')) {
+                return reply.status(409).send({ error: errorMessage });
             }
-            if (error.message.includes('posterior')) {
-                return reply.status(400).send({ error: error.message });
+            if (errorMessage.includes('posterior')) {
+                return reply.status(400).send({ error: errorMessage });
             }
             return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
         }
@@ -50,12 +51,13 @@ export class DisciplineController {
         try {
             const sancion = await this.updateDisciplineUseCase.execute(request.params.id, request.body);
             return reply.status(200).send({ data: sancion });
-        } catch (error: any) {
-            if (error.message.includes('no existe')) {
-                return reply.status(404).send({ error: error.message });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Error interno";
+            if (errorMessage.includes('no existe')) {
+                return reply.status(404).send({ error: errorMessage });
             }
-            if (error.message.includes('inválido') || error.message.includes('caducado')) {
-                return reply.status(400).send({ error: error.message });
+            if (errorMessage.includes('inválido') || errorMessage.includes('caducado')) {
+                return reply.status(400).send({ error: errorMessage });
             }
             return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
         }
@@ -68,9 +70,10 @@ export class DisciplineController {
         try {
             await this.deleteDisciplineUseCase.execute(request.params.id);
             return reply.status(204).send();
-        } catch (error: any) {
-            if (error.message.includes('No se encontró')) {
-                return reply.status(404).send({ error: error.message });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Error interno";
+            if (errorMessage.includes('No se encontró')) {
+                return reply.status(404).send({ error: errorMessage });
             }
             return reply.status(500).send({ error: 'Error interno al intentar eliminar el registro, reintente más tarde' });
         }
