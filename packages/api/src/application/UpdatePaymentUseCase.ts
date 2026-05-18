@@ -31,7 +31,7 @@ export class UpdatePaymentUseCase {
         this.paymentValidator.validatePaymentUpdate(data);
 
         const nextEstado = this.getNextEstado(data.estado, existingPayment.estado);
-        const nextFechaPago = data.fecha_pago ?? existingPayment.fecha_pago;
+        const nextFechaPago = this.getNextFechaPago(data.fecha_pago, existingPayment.fecha_pago, nextEstado);
         if (nextEstado === 'Pagado' && !nextFechaPago) {
             throw new Error('La fecha de pago es obligatoria');
         }
@@ -41,7 +41,7 @@ export class UpdatePaymentUseCase {
             mes: data.mes,
             anio: data.anio,
             fecha_vencimiento: data.fecha_vencimiento,
-            fecha_pago: data.fecha_pago,
+            fecha_pago: nextFechaPago,
             estado: nextEstado,
         };
 
@@ -55,5 +55,17 @@ export class UpdatePaymentUseCase {
 
         this.paymentValidator.validateEstado(estado);
         return estado;
+    }
+
+    private getNextFechaPago(
+        fechaPago: string | null | undefined,
+        currentFechaPago: string | null,
+        nextEstado: PaymentStatus,
+    ): string | null {
+        if (nextEstado !== 'Pagado') {
+            return null;
+        }
+
+        return fechaPago !== undefined ? fechaPago : currentFechaPago;
     }
 }

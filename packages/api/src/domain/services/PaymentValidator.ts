@@ -74,7 +74,7 @@ export class PaymentValidator {
         if (data.fecha_vencimiento !== undefined) {
             this.validateFechaVencimiento(data.fecha_vencimiento);
         }
-        if (data.fecha_pago !== undefined) {
+        if (data.fecha_pago !== undefined && data.fecha_pago !== null) {
             this.validateFechaPago(data.fecha_pago);
         }
         if (data.estado !== undefined) {

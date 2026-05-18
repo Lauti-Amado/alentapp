@@ -173,7 +173,7 @@ export function PaymentsView() {
           anio: Number(formData.anio),
           fecha_vencimiento: formData.fecha_vencimiento,
           estado: formData.estado,
-          ...(formData.fecha_pago ? { fecha_pago: formData.fecha_pago } : {}),
+          fecha_pago: formData.fecha_pago || null,
         };
         await paymentsService.update(editingPaymentId, updateData);
       } else {
