@@ -197,7 +197,7 @@ export function MedicalCertificatesView() {
                     </Stack>
                     <HStack gap="3">
                         <Button colorPalette="blue" size="md" onClick={openCreateModal}>
-                            <LuPlus /> Registrar Certificado médico
+                            <LuPlus /> Registrar Certificado Médico
                         </Button>
                     </HStack>
                 </Flex>
