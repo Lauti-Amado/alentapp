@@ -4,6 +4,7 @@ import { LuBan } from "react-icons/lu";
 import { LuLock } from "react-icons/lu";
 import { LuFileHeart } from "react-icons/lu";
 import { SectionCard } from "../components/SectionCard";
+import { LuTrophy } from "react-icons/lu";
 
 export function HomeView() {
   return (
@@ -60,7 +61,7 @@ export function HomeView() {
           title="Deportes"
           description="Administra los deportes ofrecidos."
           to="/deportes"
-          icon={LuBan}
+          icon={LuTrophy}
         />
       </SimpleGrid>
     </Box>
