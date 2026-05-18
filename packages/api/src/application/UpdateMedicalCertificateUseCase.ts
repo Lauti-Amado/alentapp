@@ -17,7 +17,7 @@ export class UpdateMedicalCertificateUseCase {
 
         // 3. Re-validar rango de fechas si se modifica alguna
         if (data.fecha_emision !== undefined || data.fecha_vencimiento !== undefined) {
-           await this.medicalCertificateValidator.validarFechas(id, data)
+           await this.medicalCertificateValidator.validarFechasUpdate(id, data)
         }
 
         
