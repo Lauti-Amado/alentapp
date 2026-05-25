@@ -9,6 +9,7 @@ import { PostgresPaymentRepository } from './infrastructure/PostgresPaymentRepos
 import { MemberValidator } from './domain/services/MemberValidator.js';
 import { LockerValidator } from './domain/services/LockerValidator.js';
 import { PaymentValidator } from './domain/services/PaymentValidator.js';
+import { DisciplineValidator } from './domain/services/DisciplineValidator.js';
 import { CreateLocker } from './application/CreateLocker.js';
 import { GetLockers } from './application/GetLockers.js';
 import { UpdateLocker } from './application/UpdateLocker.js';
@@ -85,10 +86,11 @@ export function buildApp() {
     const updateLockerUseCase = new UpdateLocker(lockerRepo, lockerValidator);
     const deleteLockerUseCase = new DeleteLocker(lockerRepo);
 
-    const createDisciplineUseCase = new CreateDisciplineUseCase(disciplineRepo, memberRepo);
+    const disciplineValidator = new DisciplineValidator(disciplineRepo, memberRepo);
+    const createDisciplineUseCase = new CreateDisciplineUseCase(disciplineRepo, disciplineValidator);
     const getDisciplinesUseCase = new GetDisciplinesUseCase(disciplineRepo);
-    const updateDisciplineUseCase = new UpdateDisciplineUseCase(disciplineRepo);
-    const deleteDisciplineUseCase = new DeleteDisciplineUseCase(disciplineRepo);
+    const updateDisciplineUseCase = new UpdateDisciplineUseCase(disciplineRepo, disciplineValidator);
+    const deleteDisciplineUseCase = new DeleteDisciplineUseCase(disciplineRepo, disciplineValidator);
 
     const createSportUseCase = new CreateSportUseCase(sportRepo);
     const getSportsUseCase = new GetSportsUseCase(sportRepo);

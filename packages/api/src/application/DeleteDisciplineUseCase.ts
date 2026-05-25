@@ -1,14 +1,14 @@
 import { IDisciplineRepository } from '../domain/DisciplineRepository.js';
+import { DisciplineValidator } from '../domain/services/DisciplineValidator.js';
 
 export class DeleteDisciplineUseCase {
-    constructor(private readonly disciplineRepo: IDisciplineRepository) {}
+    constructor(
+        private readonly disciplineRepo: IDisciplineRepository,
+        private readonly validator: DisciplineValidator,
+    ) {}
 
     async execute(id: string): Promise<void> {
-        const existing = await this.disciplineRepo.findById(id);
-        if (!existing) {
-            throw new Error('No se encontró la sanción especificada para eliminar');
-        }
-
+        await this.validator.validateDisciplineExists(id);
         await this.disciplineRepo.delete(id);
     }
 }
