@@ -106,7 +106,7 @@ describe('Lockers', () => {
   // TEST 3: Manejo de error del backend
   // Verifica que cuando el servicio falla, se muestra el mensaje de
   // error en pantalla en lugar de la tabla.
-  // Componente: Lockers.tsx → fetchData() → catch → setError(err.message)
+  // Componente: Lockers.tsx -> fetchData() -> catch -> setError(err.message)
   // ─────────────────────────────────────────────────────────────────
   it('debe renderizar un mensaje de error si el servicio backend falla', async () => {
     // Simulamos un error 500 en el servicio de lockers
@@ -121,4 +121,62 @@ describe('Lockers', () => {
       expect(screen.getByText('Servidor caído')).toBeInTheDocument();
     });
   });
+
+  // ─────────────────────────────────────────────────────────────────
+  // TEST 4: Crear un nuevo locker mediante el formulario
+  // Verifica que al abrir el modal, completar el formulario y hacer
+  // submit, se llama a lockersService.create con los datos correctos.
+  // Componente: Lockers.tsx -> openCreateModal() -> handleSubmit() -> lockersService.create()
+  // ─────────────────────────────────────────────────────────────────
+  it('debe permitir crear un nuevo locker mediante el formulario', async () => {
+    const user = (await import('@testing-library/user-event')).default.setup();
+
+    // Configuramos los mocks para todas las llamadas (create refresca la lista)
+    vi.mocked(lockersService.getAll).mockResolvedValue([]);
+    vi.mocked(membersService.getAll).mockResolvedValue([]);
+    vi.mocked(lockersService.create).mockResolvedValueOnce({
+      id: '3',
+      numero: 101,
+      estado: 'Disponible',
+      ubicacion: 'Vestuario Masculino',
+      member_id: null
+    });
+
+    // Mockeamos el alert del navegador que aparece al crear con éxito
+    // Lockers.tsx hace alert("Locker creado con éxito") en handleSubmit()
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+    renderWithProviders(<Lockers />);
+
+    // Esperamos que termine de cargar
+    await waitFor(() => {
+      expect(screen.queryByText('Cargando datos...')).not.toBeInTheDocument();
+    });
+
+    // Hacemos click en "Nuevo Locker"
+    const addButton = screen.getByText(/Nuevo Locker/i);
+    await user.click(addButton);
+
+    // Llenamos el formulario
+    // Campo número: Lockers.tsx usa type="number" con placeholder "Ej. 101"
+    const numeroInput = screen.getByPlaceholderText('Ej. 11');
+    await user.clear(numeroInput);
+    await user.type(numeroInput, '11');
+
+    // Campo ubicación: Lockers.tsx usa placeholder "Ej. Vestuario Masculino"
+    await user.type(screen.getByPlaceholderText('Ej. Vestuario Masculino'), 'Vestuario Masculino');
+
+    // Clic en submit
+    const submitButton = screen.getByText('Crear Locker');
+    await user.click(submitButton);
+
+    // Verificamos que el servicio create fue llamado con los datos correctos
+    expect(lockersService.create).toHaveBeenCalledWith(expect.objectContaining({
+      numero: 11,
+      ubicacion: 'Vestuario Masculino'
+    }));
+
+    alertSpy.mockRestore();
+  });
+
 });
