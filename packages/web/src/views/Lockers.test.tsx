@@ -222,4 +222,54 @@ describe('Lockers', () => {
     confirmSpy.mockRestore();
   });
 
+  // ─────────────────────────────────────────────────────────────────
+  // TEST 6: Editar un locker existente
+  // Verifica que al hacer click en editar, el formulario se pre-carga
+  // con los datos del locker y al guardar se llama a lockersService.update()
+  // Componente: Lockers.tsx -> openEditModal() -> handleSubmit() -> lockersService.update()
+  // ─────────────────────────────────────────────────────────────────
+  it('debe permitir editar un locker existente', async () => {
+    const user = (await import('@testing-library/user-event')).default.setup();
+
+    const mockLockers = [
+      { id: '1', numero: 101, estado: 'Disponible', ubicacion: 'Vestuario Masculino', member_id: null }
+    ] as LockerDTO[];
+
+    vi.mocked(lockersService.getAll).mockResolvedValue(mockLockers);
+    vi.mocked(membersService.getAll).mockResolvedValue([]);
+    vi.mocked(lockersService.update).mockResolvedValueOnce({
+      ...mockLockers[0],
+      ubicacion: 'Vestuario Femenino'
+    });
+
+    renderWithProviders(<Lockers />);
+
+    await waitFor(() => {
+      expect(screen.getByText('101')).toBeInTheDocument();
+    });
+
+    // Clic en editar
+    // Lockers.tsx usa aria-label="Editar locker"
+    const editButton = screen.getByLabelText(/Editar locker/i);
+    await user.click(editButton);
+
+    // Verificamos que el formulario se pre-cargó con los datos del locker
+    // openEditModal() hace setFormData con los valores del locker seleccionado
+    const ubicacionInput = screen.getByPlaceholderText('Ej. Vestuario Masculino');
+    expect(ubicacionInput).toHaveValue('Vestuario Masculino');
+
+    // Modificamos la ubicación
+    await user.clear(ubicacionInput);
+    await user.type(ubicacionInput, 'Vestuario Femenino');
+
+    // Guardamos los cambios
+    const submitButton = screen.getByText('Guardar Cambios');
+    await user.click(submitButton);
+
+    // Verificamos que se llamó al servicio update con el id y los datos correctos
+    expect(lockersService.update).toHaveBeenCalledWith('1', expect.objectContaining({
+      ubicacion: 'Vestuario Femenino'
+    }));
+  });
+
 });
