@@ -69,8 +69,8 @@ describe('Lockers', () => {
   // ─────────────────────────────────────────────────────────────────
   it('debe renderizar la lista de lockers si el backend responde exitosamente', async () => {
     const mockLockers = [
-      { id: '1', numero: 101, estado: 'Disponible', ubicacion: 'Vestuario Masculino', member_id: null },
-      { id: '2', numero: 202, estado: 'Ocupado',    ubicacion: 'Vestuario Femenino',  member_id: 'abc-123' },
+      { id: '1', numero: 11, estado: 'Disponible', ubicacion: 'Vestuario Masculino', member_id: null },
+      { id: '2', numero: 22, estado: 'Ocupado',    ubicacion: 'Vestuario Femenino',  member_id: 'abc-123' },
     ] as LockerDTO[];
 
     // Para el segundo locker que tiene member_id, también mockeamos el miembro
@@ -85,7 +85,7 @@ describe('Lockers', () => {
 
     // Esperamos a que los datos se inyecten en el DOM
     await waitFor(() => {
-      expect(screen.getByText('101')).toBeInTheDocument();
+      expect(screen.getByText('11')).toBeInTheDocument();
     });
 
     // Validamos el primer locker
@@ -93,7 +93,7 @@ describe('Lockers', () => {
     expect(screen.getByText('Disponible')).toBeInTheDocument();
 
     // Validamos el segundo locker
-    expect(screen.getByText('202')).toBeInTheDocument();
+    expect(screen.getByText('22')).toBeInTheDocument();
     expect(screen.getByText('Vestuario Femenino')).toBeInTheDocument();
     expect(screen.getByText('Ocupado')).toBeInTheDocument();
 
@@ -136,7 +136,7 @@ describe('Lockers', () => {
     vi.mocked(membersService.getAll).mockResolvedValue([]);
     vi.mocked(lockersService.create).mockResolvedValueOnce({
       id: '3',
-      numero: 101,
+      numero: 11,
       estado: 'Disponible',
       ubicacion: 'Vestuario Masculino',
       member_id: null
@@ -158,7 +158,7 @@ describe('Lockers', () => {
     await user.click(addButton);
 
     // Llenamos el formulario
-    // Campo número: Lockers.tsx usa type="number" con placeholder "Ej. 101"
+    // Campo número: Lockers.tsx usa type="number" con placeholder "Ej. 11"
     const numeroInput = screen.getByPlaceholderText('Ej. 11');
     await user.clear(numeroInput);
     await user.type(numeroInput, '11');
