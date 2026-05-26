@@ -65,4 +65,31 @@ describe('CreateLocker', () => {
         expect(result.estado).toBe('Disponible');
         expect(result.member_id).toBeNull();
     });
+
+    // ─────────────────────────────────────────────────────────────────
+    // TEST 8: Número inválido
+    // Verifica que si validateNumero lanza un error, el caso de uso
+    // lo propaga y NO intenta persistir nada en la base de datos.
+    // CreateLocker.ts → validateNumero() lanza → repo.create() NUNCA se llama
+    // ─────────────────────────────────────────────────────────────────
+    it('debe lanzar error si el número del locker es inválido y no persistir nada', async () => {
+        const mockRequest: CreateLockerRequest = {
+            numero: -1,
+            ubicacion: 'Vestuario Masculino',
+        };
+
+        // Simulamos que el validador detecta el número inválido
+        vi.mocked(mockLockerValidator.validateNumero).mockImplementationOnce(() => {
+            throw new Error('El número del locker es obligatorio y debe ser válido');
+        });
+
+        // Verificamos que el error se propaga correctamente
+        await expect(useCase.execute(mockRequest)).rejects.toThrow(
+            'El número del locker es obligatorio y debe ser válido'
+        );
+
+        // Verificamos que NUNCA se intentó persistir en la base de datos
+        expect(mockLockerRepo.create).not.toHaveBeenCalled();
+    });
+
 });
