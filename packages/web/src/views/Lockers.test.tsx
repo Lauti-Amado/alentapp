@@ -101,4 +101,24 @@ describe('Lockers', () => {
     // Lockers.tsx usa members.find(m => m.id === locker.member_id)?.name
     expect(screen.getByText('Juan Perez')).toBeInTheDocument();
   });
+  
+  // ─────────────────────────────────────────────────────────────────
+  // TEST 3: Manejo de error del backend
+  // Verifica que cuando el servicio falla, se muestra el mensaje de
+  // error en pantalla en lugar de la tabla.
+  // Componente: Lockers.tsx → fetchData() → catch → setError(err.message)
+  // ─────────────────────────────────────────────────────────────────
+  it('debe renderizar un mensaje de error si el servicio backend falla', async () => {
+    // Simulamos un error 500 en el servicio de lockers
+    vi.mocked(lockersService.getAll).mockRejectedValueOnce(new Error('Servidor caído'));
+    // members también puede fallar, pero el componente captura cualquiera de los dos
+    vi.mocked(membersService.getAll).mockResolvedValueOnce([]);
+
+    renderWithProviders(<Lockers />);
+
+    // Esperamos a que se muestre el texto de error en pantalla
+    await waitFor(() => {
+      expect(screen.getByText('Servidor caído')).toBeInTheDocument();
+    });
+  });
 });
