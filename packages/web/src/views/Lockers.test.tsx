@@ -179,4 +179,47 @@ describe('Lockers', () => {
     alertSpy.mockRestore();
   });
 
+  // ─────────────────────────────────────────────────────────────────
+  // TEST 5: Eliminar un locker con confirmación
+  // Verifica que al hacer click en eliminar, se muestra el confirm
+  // del navegador y al confirmar se llama a lockersService.delete()
+  // Componente: Lockers.tsx -> handleDeleteLocker() -> window.confirm() -> lockersService.delete()
+  // ─────────────────────────────────────────────────────────────────
+  it('debe permitir eliminar un locker con confirmación', async () => {
+    const user = (await import('@testing-library/user-event')).default.setup();
+
+    const mockLockers = [
+      { id: '1', numero: 11, estado: 'Disponible', ubicacion: 'Vestuario Masculino', member_id: null }
+    ] as LockerDTO[];
+
+    vi.mocked(lockersService.getAll).mockResolvedValue(mockLockers);
+    vi.mocked(membersService.getAll).mockResolvedValue([]);
+    vi.mocked(lockersService.delete).mockResolvedValueOnce(undefined);
+
+    // Interceptamos el confirm del navegador y lo aceptamos
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderWithProviders(<Lockers />);
+
+    await waitFor(() => {
+      expect(screen.getByText('11')).toBeInTheDocument();
+    });
+
+    // Clic en eliminar
+    // Lockers.tsx usa aria-label="Eliminar locker"
+    const deleteButton = screen.getByLabelText(/Eliminar locker/i);
+    await user.click(deleteButton);
+
+    // Verificamos que se mostró el mensaje de confirmación correcto
+    // Lockers.tsx arma el mensaje con el número del locker
+    expect(confirmSpy).toHaveBeenCalledWith(
+      '¿Estás seguro de que deseas eliminar permanentemente el locker #11? Esta acción no se puede deshacer.'
+    );
+
+    // Verificamos que se llamó al servicio con el id correcto
+    expect(lockersService.delete).toHaveBeenCalledWith('1');
+
+    confirmSpy.mockRestore();
+  });
+
 });
