@@ -22,8 +22,32 @@ vi.mock('../infrastructure/PostgresDisciplineRepository.js', () => {
                 };
             }
             async findAll() { return []; }
-            async findById() { return null; }
-            async update(id: string, data: any) { return { id, ...data }; }
+            async findById(id: string) {
+                if (id === 'uuid-disc-existing') {
+                    return {
+                        id: 'uuid-disc-existing',
+                        motivo: 'Conducta inapropiada en instalaciones',
+                        fechaInicio: '2026-06-01',
+                        fechaFin: '2027-07-01', // futuro → no caducada
+                        esSuspensionTotal: false,
+                        memberId: 'uuid-member-1',
+                        motivoLevantamiento: null,
+                    };
+                }
+                return null;
+            }
+            async update(id: string, data: any) {
+                return {
+                    id: 'uuid-disc-existing',
+                    motivo: 'Conducta inapropiada en instalaciones',
+                    fechaInicio: '2026-06-01',
+                    fechaFin: '2027-07-01',
+                    esSuspensionTotal: false,
+                    memberId: 'uuid-member-1',
+                    motivoLevantamiento: null,
+                    ...data,
+                };
+            }
             async delete() { return; }
             async findActiveTotalSuspensionByMember(memberId: string) {
                 if (memberId === 'uuid-member-with-active-suspension') {
@@ -101,6 +125,8 @@ describe('Discipline API Integration Tests', () => {
         await app.close();
     });
 
+    // IT-1 - IT-2 (flujo de creación)
+
     describe('POST /api/v1/disciplines', () => {
         it('debe retornar 201 y el DTO de la sanción creada', async () => {
             const response = await app.inject({
@@ -133,6 +159,35 @@ describe('Discipline API Integration Tests', () => {
             const body = JSON.parse(response.payload);
             expect(body.error).toContain('Pedro Lopez');
             expect(body.error).toContain('suspensión total vigente');
+        });
+    });
+
+    // IT-3 - IT-4 (flujo de actualización)
+    
+    describe('PUT /api/v1/disciplines/:id', () => {
+        it('debe retornar 200 y el DTO de la sanción actualizada', async () => {
+            const response = await app.inject({
+                method: 'PUT',
+                url: '/api/v1/disciplines/uuid-disc-existing',
+                payload: { motivo: 'Motivo actualizado' },
+            });
+
+            expect(response.statusCode).toBe(200);
+            const body = JSON.parse(response.payload);
+            expect(body.data.id).toBe('uuid-disc-existing');
+            expect(body.data.motivo).toBe('Motivo actualizado');
+        });
+
+        it('debe retornar 404 si la sanción no existe', async () => {
+            const response = await app.inject({
+                method: 'PUT',
+                url: '/api/v1/disciplines/uuid-disc-no-existe',
+                payload: { motivo: 'Cualquier cosa' },
+            });
+
+            expect(response.statusCode).toBe(404);
+            const body = JSON.parse(response.payload);
+            expect(body.error).toContain('no existe');
         });
     });
 });
