@@ -70,7 +70,7 @@ describe('CreateLocker', () => {
     // TEST 8: Número inválido
     // Verifica que si validateNumero lanza un error, el caso de uso
     // lo propaga y NO intenta persistir nada en la base de datos.
-    // CreateLocker.ts → validateNumero() lanza → repo.create() NUNCA se llama
+    // CreateLocker.ts -> validateNumero() lanza -> repo.create() NUNCA se llama
     // ─────────────────────────────────────────────────────────────────
     it('debe lanzar error si el número del locker es inválido y no persistir nada', async () => {
         const mockRequest: CreateLockerRequest = {
