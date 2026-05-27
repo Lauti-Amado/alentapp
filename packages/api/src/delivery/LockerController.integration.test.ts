@@ -138,9 +138,30 @@ describe('Locker API Integration Tests', () => {
         });
     });
 
+    describe('PUT /api/v1/lockers/:id', () => {
+        // ─────────────────────────────────────────────────────────────────
+        // TEST 5: PUT /api/v1/lockers/:id (Camino Feliz - Actualización)
+        // Verifica que si el ID existe, se actualiza y devuelve 200 con los datos.
+        // Ruta: LockerController.update() -> UpdateLocker -> repo.findById() -> repo.update()
+        // ─────────────────────────────────────────────────────────────────
+        it('debe retornar 200 y actualizar la ubicación del locker', async () => {
+            const response = await app.inject({
+                method: 'PUT',
+                url: '/api/v1/lockers/1',
+                payload: { ubicacion: 'Vestuario Actualizado' }
+            });
+
+            expect(response.statusCode).toBe(200);
+            const body = JSON.parse(response.payload);
+            expect(body.data.ubicacion).toBe('Vestuario Actualizado');
+        });
+    });
+
+
+
     describe('DELETE /api/v1/lockers/:id', () => {
         // ─────────────────────────────────────────────────────────────────
-        // TEST 5: DELETE /api/v1/lockers/:id (Camino Feliz - Borrado)
+        // TEST 6: DELETE /api/v1/lockers/:id (Camino Feliz - Borrado)
         // Verifica que si el ID existe, se elimina y devuelve 204 No Content.
         // Ruta: LockerController.delete() -> DeleteLocker -> repo.findById() -> repo.delete()
         // ─────────────────────────────────────────────────────────────────
@@ -155,7 +176,7 @@ describe('Locker API Integration Tests', () => {
         });
 
         // ─────────────────────────────────────────────────────────────────
-        // TEST 6: DELETE /api/v1/lockers/:id (Caso de Borde - No encontrado)
+        // TEST 7: DELETE /api/v1/lockers/:id (Caso de Borde - No encontrado)
         // Verifica que si el ID no existe en la DB, devuelve error 404.
         // ─────────────────────────────────────────────────────────────────
         it('debe retornar 404 si el locker a eliminar no existe', async () => {
