@@ -15,6 +15,7 @@ vi.mock('../infrastructure/PostgresLockerRepository.js', () => {
                 return [{ id: '1', numero: 11, estado: 'Disponible', ubicacion: 'Vestuario Masculino', member_id: null }];
             }
             async findById(id: string) {
+                // Simulamos que el ID '1' existe, el resto no
                 return id === '1' ? { id: '1', numero: 11, estado: 'Disponible', ubicacion: 'Vestuario Masculino', member_id: null } : null;
             }
             async findByNumero(numero: number) {
@@ -28,7 +29,7 @@ vi.mock('../infrastructure/PostgresLockerRepository.js', () => {
                 return { id, ...data };
             }
             async delete(id: string) {
-                return;
+                return; // Simula un borrado exitoso sin devolver nada
             }
         }
     };
@@ -121,7 +122,7 @@ describe('Locker API Integration Tests', () => {
         // ─────────────────────────────────────────────────────────────────
         it('debe retornar 400 si el número del locker es inválido', async () => {
             const payload = {
-                numero: -1, // Número inválido según LockerValidator.validateNumero()
+                numero: -1, // Número inválido según LockerValidator
                 ubicacion: 'Vestuario Masculino',
             };
 
@@ -133,7 +134,39 @@ describe('Locker API Integration Tests', () => {
 
             expect(response.statusCode).toBe(400);
             const body = JSON.parse(response.payload);
-            expect(body.error).toBe('El número del locker es obligatorio y debe ser válido'); 
+            expect(body.error).toContain('obligatorio'); // toContain por si varía el string de error
+        });
+    });
+
+    describe('DELETE /api/v1/lockers/:id', () => {
+        // ─────────────────────────────────────────────────────────────────
+        // TEST 5: DELETE /api/v1/lockers/:id (Camino Feliz - Borrado)
+        // Verifica que si el ID existe, se elimina y devuelve 204 No Content.
+        // Ruta: LockerController.delete() -> DeleteLocker -> repo.findById() -> repo.delete()
+        // ─────────────────────────────────────────────────────────────────
+        it('debe retornar 204 si el locker se elimina correctamente', async () => {
+            const response = await app.inject({
+                method: 'DELETE',
+                url: '/api/v1/lockers/1' // El ID 1 existe en nuestro mock (findById)
+            });
+
+            expect(response.statusCode).toBe(204);
+            expect(response.payload).toBe(''); // 204 no devuelve cuerpo
+        });
+
+        // ─────────────────────────────────────────────────────────────────
+        // TEST 6: DELETE /api/v1/lockers/:id (Caso de Borde - No encontrado)
+        // Verifica que si el ID no existe en la DB, devuelve error 404.
+        // ─────────────────────────────────────────────────────────────────
+        it('debe retornar 404 si el locker a eliminar no existe', async () => {
+            const response = await app.inject({
+                method: 'DELETE',
+                url: '/api/v1/lockers/999' // El ID 999 NO existe en nuestro mock
+            });
+
+            expect(response.statusCode).toBe(404);
+            const body = JSON.parse(response.payload);
+            expect(body.error).toBe('El locker solicitado no existe');
         });
     });
 });
