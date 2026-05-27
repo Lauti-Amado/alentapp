@@ -72,7 +72,7 @@ export class DisciplineController {
             return reply.status(204).send();
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : "Error interno";
-            if (errorMessage.includes('No se encontró')) {
+            if (errorMessage.includes('no existe')) {
                 return reply.status(404).send({ error: errorMessage });
             }
             return reply.status(500).send({ error: 'Error interno al intentar eliminar el registro, reintente más tarde' });

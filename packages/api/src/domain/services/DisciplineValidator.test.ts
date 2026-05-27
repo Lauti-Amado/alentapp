@@ -67,7 +67,7 @@ describe('DisciplineValidator', () => {
         });
     });
 
-    // UT-1 (flujo de actualización)
+    // UT-5 (flujo de actualización)
     describe('validateDisciplineExists', () => {
         it('debe lanzar error si la sanción no existe', async () => {
             vi.mocked(mockDisciplineRepo.findById).mockResolvedValueOnce(null);
@@ -79,7 +79,7 @@ describe('DisciplineValidator', () => {
         });
     });
 
-    // UT-2 (flujo de actualización)
+    // UT-6 (flujo de actualización)
     describe('validateDateRangeForUpdate', () => {
         it('debe lanzar error con update parcial cuando fechaFin es anterior al fechaInicio existente', () => {
             const existing = {
@@ -100,7 +100,7 @@ describe('DisciplineValidator', () => {
         });
     });
 
-    // UT-3 (flujo de actualización)
+    // UT-7 (flujo de actualización)
     describe('validateLevantamiento', () => {
         it('debe lanzar error al intentar levantar una sanción que ya caducó', () => {
             const existingCaducada = {
@@ -116,6 +116,40 @@ describe('DisciplineValidator', () => {
             expect(() =>
                 validator.validateLevantamiento(existingCaducada, 'Cumplió la sanción'),
             ).toThrow('No se puede levantar una sanción que ya ha caducado');
+        });
+    });
+
+    // UT-9 (flujo de eliminación)
+    describe('validateDisciplineExists (happy path)', () => {
+        it('debe retornar el DTO de la sanción cuando existe', async () => {
+            const disciplineFixture = {
+                id: 'uuid-disc-existente',
+                motivo: 'Conducta inapropiada',
+                fechaInicio: '2026-06-01T00:00:00.000Z',
+                fechaFin: '2026-07-01T00:00:00.000Z',
+                esSuspensionTotal: false,
+                memberId: 'uuid-member-1',
+                motivoLevantamiento: null,
+            };
+
+            vi.mocked(mockDisciplineRepo.findById).mockResolvedValueOnce(disciplineFixture);
+
+            const result = await validator.validateDisciplineExists('uuid-disc-existente');
+
+            expect(result).toEqual(disciplineFixture);
+            expect(mockDisciplineRepo.findById).toHaveBeenCalledWith('uuid-disc-existente');
+        });
+    });
+
+    // UT-10 (flujo de eliminación)
+    describe('validateDisciplineExists (sad path)', () => {
+        it('debe lanzar error si la sanción no existe', async () => {
+            vi.mocked(mockDisciplineRepo.findById).mockResolvedValueOnce(null);
+
+            await expect(validator.validateDisciplineExists('uuid-inexistente')).rejects.toThrow(
+                'El registro de sanción no existe',
+            );
+            expect(mockDisciplineRepo.findById).toHaveBeenCalledWith('uuid-inexistente');
         });
     });
 });
