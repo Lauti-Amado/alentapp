@@ -163,7 +163,7 @@ describe('Discipline API Integration Tests', () => {
     });
 
     // IT-3 - IT-4 (flujo de actualización)
-    
+
     describe('PUT /api/v1/disciplines/:id', () => {
         it('debe retornar 200 y el DTO de la sanción actualizada', async () => {
             const response = await app.inject({
@@ -183,6 +183,31 @@ describe('Discipline API Integration Tests', () => {
                 method: 'PUT',
                 url: '/api/v1/disciplines/uuid-disc-no-existe',
                 payload: { motivo: 'Cualquier cosa' },
+            });
+
+            expect(response.statusCode).toBe(404);
+            const body = JSON.parse(response.payload);
+            expect(body.error).toContain('no existe');
+        });
+    });
+
+    // IT-5 - IT-6 (flujo de eliminación)
+    
+    describe('DELETE /api/v1/disciplines/:id', () => {
+        it('debe retornar 204 No Content al eliminar una sanción existente', async () => {
+            const response = await app.inject({
+                method: 'DELETE',
+                url: '/api/v1/disciplines/uuid-disc-existing',
+            });
+
+            expect(response.statusCode).toBe(204);
+            expect(response.payload).toBe('');
+        });
+
+        it('debe retornar 404 si la sanción a eliminar no existe', async () => {
+            const response = await app.inject({
+                method: 'DELETE',
+                url: '/api/v1/disciplines/uuid-disc-no-existe',
             });
 
             expect(response.statusCode).toBe(404);
