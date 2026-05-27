@@ -37,6 +37,31 @@ describe('Locker API E2E Tests', () => {
     });
 
     // ─────────────────────────────────────────────────────────────────
+    // TEST E2E 2: PUT /api/v1/lockers/:id
+    // Verifica que se actualiza el locker creado en el test anterior
+    // y que Prisma confirma el cambio directamente en PostgreSQL.
+    // ─────────────────────────────────────────────────────────────────
+    it('2. PUT: Debe actualizar el locker modificando la base de datos', async () => {
+        const updatePayload = {
+            ubicacion: 'Vestuario E2E Modificado'
+        };
+
+        const response = await app.inject({
+            method: 'PUT',
+            url: `/api/v1/lockers/${createdLockerId}`,
+            payload: updatePayload
+        });
+
+        expect(response.statusCode).toBe(200);
+        const body = JSON.parse(response.payload);
+        expect(body.data.ubicacion).toBe('Vestuario E2E Modificado');
+
+        // Verificar directamente en PostgreSQL que el campo se modificó
+        const dbLocker = await prisma.locker.findUnique({ where: { id: createdLockerId } });
+        expect(dbLocker?.ubicacion).toBe('Vestuario E2E Modificado');
+    });
+
+    // ─────────────────────────────────────────────────────────────────
     // TEST E2E 3: DELETE /api/v1/lockers/:id
     // Verifica que el locker se elimina físicamente de PostgreSQL
     // y que Prisma ya no lo encuentra tras el borrado.
