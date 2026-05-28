@@ -50,13 +50,14 @@ test.describe('Sports E2E (Create only)', () => {
     await expect(page.getByText('Agregar Nuevo Deporte')).toBeVisible();
 
     await page.getByPlaceholder('Ej. Fútbol').fill('Futbol E2E');
-    await page.getByPlaceholder('Cupo máximo').fill('25');
-    await page.getByPlaceholder('Precio adicional').fill('1500');
-    await page.getByPlaceholder('Descripción').fill('test e2e');
+    await page.getByPlaceholder('Ej. 30').fill('25');
+    await page.getByPlaceholder('Ej. 1500').fill('1500');
+    await page.getByRole('textbox', { name: 'Descripción' }).fill('test e2e');
 
     await page.getByRole('button', { name: 'Crear Deporte' }).click();
 
     await expect(page.getByText('Futbol E2E')).toBeVisible();
     await expect(page.getByText('25')).toBeVisible();
+    await page.pause();
   });
 });
