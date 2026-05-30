@@ -228,7 +228,7 @@ export function Lockers() {
                 <Field label="Número de Locker" required>
                   <Input 
                     type="number" 
-                    placeholder="Ej. 101" 
+                    placeholder="Ej. 11" 
                     value={formData.numero || ''} 
                     onChange={(e) => {
                       const value = e.target.value;

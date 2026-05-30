@@ -67,13 +67,24 @@ export class PostgresPaymentRepository implements PaymentRepository {
                 fecha_vencimiento: data.fecha_vencimiento !== undefined
                     ? new Date(`${data.fecha_vencimiento}T00:00:00.000Z`)
                     : undefined,
-                fecha_pago: data.fecha_pago !== undefined
+                fecha_pago: data.fecha_pago === null
+                    ? null
+                    : data.fecha_pago !== undefined
                     ? new Date(`${data.fecha_pago}T00:00:00.000Z`)
                     : undefined,
             },
         });
 
         return this.mapToDTO(payment as DBPayment);
+    }
+
+    async softDelete(id: string): Promise<void> {
+        await prisma.payment.update({
+            where: { id },
+            data: {
+                deleted_at: new Date(),
+            },
+        });
     }
 
     private mapToDTO(payment: DBPayment): PaymentDTO {

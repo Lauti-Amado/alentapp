@@ -1,31 +1,22 @@
-import { isAfter } from 'date-fns';
 import { IDisciplineRepository } from '../domain/DisciplineRepository.js';
-import { MemberRepository } from '../domain/MemberRepository.js';
+import { DisciplineValidator } from '../domain/services/DisciplineValidator.js';
 import { DisciplineDTO, CreateDisciplineRequest } from '@alentapp/shared';
 
 export class CreateDisciplineUseCase {
     constructor(
         private readonly disciplineRepository: IDisciplineRepository,
-        private readonly memberRepository: MemberRepository,
+        private readonly validator: DisciplineValidator,
     ) {}
 
     async execute(data: CreateDisciplineRequest): Promise<DisciplineDTO> {
         // 1. Validar rango de fechas
-        if (!isAfter(new Date(data.fechaFin), new Date(data.fechaInicio))) {
-            throw new Error('La fecha de fin debe ser posterior a la de inicio');
-        }
+        this.validator.validateDateRange(data.fechaInicio, data.fechaFin);
 
         // 2. Verificar que el socio exista
-        const member = await this.memberRepository.findById(data.memberId);
-        if (!member) {
-            throw new Error('El socio provisto no existe');
-        }
+        const member = await this.validator.validateMemberExists(data.memberId);
 
         // 3. Verificar que no tenga una suspensión total activa
-            const activeSuspension = await this.disciplineRepository.findActiveTotalSuspensionByMember(data.memberId);
-            if (activeSuspension) {
-                throw new Error(`El socio ${member.name} - DNI: ${member.dni} ya cuenta con una suspensión total vigente`);
-            }
+        await this.validator.validateNoActiveTotalSuspension(data.memberId, member.name, member.dni);
 
         // 4. Persistir
         return this.disciplineRepository.create(data);

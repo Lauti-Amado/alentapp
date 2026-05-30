@@ -43,10 +43,9 @@ Se utilizará el paquete compartido para definir el cuerpo de la petición. Los 
 
 ### Componentes de Arquitectura Hexagonal
 1. Puerto: ```SportRepository``` (Interfaz que define el método update (id, data)).
-2. Servicio de Dominio: ```SportValidator``` (Encargado de reutilizar validaciones de Cupo_Maximo y Descripcion).
-3. Casos de Uso: ```UpdateSportUseCase``` (Orquesta la validacion y llama al repositorio).
-4. Adaptador de Salida: ```PostgresSportRepository``` (Actualizacion usando el método update de Prisma).
-5. Adaptador de Entrada: ```SportController``` (Ruta HTTP que extrae id de la URL y mapea excepciones a códigos HTTP).
+2. Casos de Uso: ```UpdateSportUseCase``` (Orquesta las validaciones de Cupo_Maximo y Descripcion y delega la persistencia al repositorio)
+3. Adaptador de Salida: ```PostgresSportRepository``` (Actualizacion usando el método update de Prisma).
+4. Adaptador de Entrada: ```SportController``` (Ruta HTTP que extrae id de la URL y mapea excepciones a códigos HTTP).
 
 
 
@@ -66,7 +65,7 @@ Se utilizará el paquete compartido para definir el cuerpo de la petición. Los 
 
 1. Actualizar las interfaces en el paquete `@alentapp/shared` (`UpdateSportRequest`).
 2. Ampliar el ```SportRepository``` con el método update.
-3. Implementar la lógica en ```SportMemberUseCase``` utilizando el ```SportValidator``` centralizado.
+3. Implementar la lógica en ```UpdateSportUseCase``` realizando las validaciones correspondientes antes de llamar al repositorio.
 4. Crear la ruta ```PUT``` en el controlador y enlazarla a la app de Fastify.
 5. Consumir el endpoint desde el servicio de Frontend y reutilizar el modal de creación para permitir la edición. 
 

@@ -44,4 +44,14 @@ export const paymentsService = {
     const result = await response.json() as { data: PaymentDTO };
     return result.data;
   },
+
+  async delete(id: string): Promise<void> {
+    const response = await fetch(`${API_URL}/pagos/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const errorData = await response.json() as { error?: string };
+      throw new Error(errorData.error || 'Error al dar de baja el pago');
+    }
+  },
 };

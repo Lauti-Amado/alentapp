@@ -6,6 +6,10 @@ import { UpdateSportUseCase } from '../application/UpdateSportUseCase.js';
 import { DeleteSportUseCase } from '../application/DeleteSportUseCase.js';
 import { CreateSportRequest, UpdateSportRequest } from '@alentapp/shared';
 
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'Error desconocido';
+}
+
 export class SportController {
     constructor(
         private readonly createSportUseCase: CreateSportUseCase,
@@ -19,8 +23,8 @@ export class SportController {
         try {
             const sports = await this.getSportUseCase.execute();
             return reply.status(200).send({ data: sports });
-        } catch (error: any) {
-            return reply.status(500).send({ error: error.message });
+        } catch (error: unknown) {
+            return reply.status(500).send({ error: getErrorMessage(error) });
         }
     }
 
@@ -32,12 +36,14 @@ export class SportController {
             request.log.info('Creando el deporte');
             const sport = await this.createSportUseCase.execute(request.body);
             return reply.status(201).send({ data: sport });
-        } catch (error: any) {
-            if (error.message.includes('Ya existe un deporte con ese nombre')) {
-                return reply.status(409).send({ error: error.message });
+        }  catch (error: unknown) {
+            const message = getErrorMessage(error);
+
+            if (message.includes('Ya existe un deporte con ese nombre')) {
+                return reply.status(409).send({ error: message });
             }
-            // Retornamos el error real del Caso de Uso (Cupos, descripción vacía, etc.)
-            return reply.status(400).send({ error: error.message });
+
+            return reply.status(400).send({ error: message });
         }
     }
 
@@ -50,27 +56,30 @@ export class SportController {
             const { id } = request.params;
             const sport = await this.updateSportUseCase.execute(id, request.body);
             return reply.status(200).send({ data: sport });
-        } catch (error: any) {
-            if (error.message.includes('Ya existe un deporte con ese nombre')) {
-                return reply.status(409).send({ error: error.message });
+        } catch (error: unknown) {
+            const message = getErrorMessage(error);
+
+            if (message.includes('Ya existe un deporte con ese nombre')) {
+                return reply.status(409).send({ error: message });
             }
-            // Retornamos el error real del Caso de Uso en la edición también
-            return reply.status(400).send({ error: error.message });
+
+            return reply.status(400).send({ error: message });
         }
     }
 
-    async delete(
-        request: FastifyRequest<{ Params: { id: string } }>,
-        reply: FastifyReply,
-    ) {
-        try {
-            const { id } = request.params;
-            await this.deleteSportUseCase.execute(id);
-            return reply.status(204).send(); // No Content
-        } catch (error: any) {
-            return reply.status(400).send({ error: error.message });
-        }
+   async delete(
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply,
+) {
+    try {
+        const { id } = request.params;
+        await this.deleteSportUseCase.execute(id);
+        return reply.status(204).send(); // No Content
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        return reply.status(400).send({ error: message });
     }
+}
     
     async getByName(
         request: FastifyRequest<{ Params: { name: string } }>,
@@ -80,10 +89,13 @@ export class SportController {
             const { name } = request.params;
             const sport = await this.getSportByNameUseCase.execute(name);
             return reply.status(200).send({ data: sport });
-        } catch (error: any) {
-            if (error.message.includes('no existe')) {
-                return reply.status(404).send({ error: error.message });
+        } catch (error: unknown) {
+            const message = getErrorMessage(error);
+
+            if (message.includes('no existe')) {
+                return reply.status(404).send({ error: message });
             }
+
             return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
         }
     }

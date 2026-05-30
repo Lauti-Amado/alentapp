@@ -8,7 +8,7 @@ export class MedicalCertificateValidator {
         private readonly medicalCertificateRepo: MedicalCertificateRepository
     ) {}
 
-    async validarFechas(id: string, data: UpdateMedicalCertificateRequest): Promise<void> {
+    async validarFechasUpdate(id: string, data: UpdateMedicalCertificateRequest): Promise<void> {
         // Trae los datos del certificado médico
         const existing = await this.medicalCertificateRepo.findById(id);
         if (!existing) {
@@ -17,6 +17,16 @@ export class MedicalCertificateValidator {
         
         const emision = new Date(data.fecha_emision ?? existing.fecha_emision);
         const vencimiento = new Date(data.fecha_vencimiento ?? existing.fecha_vencimiento);
+        if (!isAfter(vencimiento, emision)) {
+            throw new Error('Error al modificar el certificado médico. El rango de fechas introducido es inválido');
+        }
+        
+    }
+
+    async validarFechasCreate(data: UpdateMedicalCertificateRequest): Promise<void> {
+
+        const emision = new Date(data.fecha_emision!);
+        const vencimiento = new Date(data.fecha_vencimiento!);
         if (!isAfter(vencimiento, emision)) {
             throw new Error('Error al modificar el certificado médico. El rango de fechas introducido es inválido');
         }

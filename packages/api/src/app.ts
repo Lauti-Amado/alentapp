@@ -9,6 +9,7 @@ import { PostgresPaymentRepository } from './infrastructure/PostgresPaymentRepos
 import { MemberValidator } from './domain/services/MemberValidator.js';
 import { LockerValidator } from './domain/services/LockerValidator.js';
 import { PaymentValidator } from './domain/services/PaymentValidator.js';
+import { DisciplineValidator } from './domain/services/DisciplineValidator.js';
 import { CreateLocker } from './application/CreateLocker.js';
 import { GetLockers } from './application/GetLockers.js';
 import { UpdateLocker } from './application/UpdateLocker.js';
@@ -25,10 +26,12 @@ import { DeleteMemberUseCase } from './application/DeleteMemberUseCase.js';
 import { CreateMedicalCertificateUseCase } from './application/CreateMedicalCertificateUseCase.js';
 import { GetMedicalCertificatesUseCase } from './application/GetMedicalCertificatesUseCase.js';
 import { UpdateMedicalCertificateUseCase } from './application/UpdateMedicalCertificateUseCase.js';
+import { DeleteMedicalCertificateUseCase } from './application/DeleteMedicalCertificateUseCase.js';
 import { MedicalCertificateController } from './delivery/MedicalCertificateController.js';
 import { MedicalCertificateValidator } from './domain/services/MedicalCertificateValidator.js';
 import { CreatePaymentUseCase } from './application/CreatePaymentUseCase.js';
 import { GetPaymentsUseCase } from './application/GetPaymentsUseCase.js';
+import { SoftDeletePaymentUseCase } from './application/SoftDeletePaymentUseCase.js';
 import { UpdatePaymentUseCase } from './application/UpdatePaymentUseCase.js';
 import { MemberController } from './delivery/MemberController.js';
 import { LockerController } from './delivery/LockerController.js';
@@ -83,10 +86,11 @@ export function buildApp() {
     const updateLockerUseCase = new UpdateLocker(lockerRepo, lockerValidator);
     const deleteLockerUseCase = new DeleteLocker(lockerRepo);
 
-    const createDisciplineUseCase = new CreateDisciplineUseCase(disciplineRepo, memberRepo);
+    const disciplineValidator = new DisciplineValidator(disciplineRepo, memberRepo);
+    const createDisciplineUseCase = new CreateDisciplineUseCase(disciplineRepo, disciplineValidator);
     const getDisciplinesUseCase = new GetDisciplinesUseCase(disciplineRepo);
-    const updateDisciplineUseCase = new UpdateDisciplineUseCase(disciplineRepo);
-    const deleteDisciplineUseCase = new DeleteDisciplineUseCase(disciplineRepo);
+    const updateDisciplineUseCase = new UpdateDisciplineUseCase(disciplineRepo, disciplineValidator);
+    const deleteDisciplineUseCase = new DeleteDisciplineUseCase(disciplineRepo, disciplineValidator);
 
     const createSportUseCase = new CreateSportUseCase(sportRepo);
     const getSportsUseCase = new GetSportsUseCase(sportRepo);
@@ -95,13 +99,15 @@ export function buildApp() {
     const deleteSportUseCase = new DeleteSportUseCase(sportRepo);
 
     const medicalCertificateValidator = new MedicalCertificateValidator(medicalCertificateRepo)
-    const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo);
+    const createMedicalCertificateUseCase = new CreateMedicalCertificateUseCase(medicalCertificateRepo, medicalCertificateValidator, memberRepo);
     const getMedicalCertificatesUseCase = new GetMedicalCertificatesUseCase(medicalCertificateRepo);
-    const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo, memberRepo, medicalCertificateValidator);
+    const updateMedicalCertificateUseCase = new UpdateMedicalCertificateUseCase(medicalCertificateRepo, medicalCertificateValidator);
+    const deleteMedicalCertificateUseCase = new DeleteMedicalCertificateUseCase(medicalCertificateRepo)
 
     const createPaymentUseCase = new CreatePaymentUseCase(paymentRepo, paymentValidator);
     const getPaymentsUseCase = new GetPaymentsUseCase(paymentRepo);
     const updatePaymentUseCase = new UpdatePaymentUseCase(paymentRepo, paymentValidator);
+    const softDeletePaymentUseCase = new SoftDeletePaymentUseCase(paymentRepo);
 
     const memberController = new MemberController(
         createMemberUseCase, 
@@ -129,7 +135,8 @@ export function buildApp() {
     const medicalCertificateController = new MedicalCertificateController(
         createMedicalCertificateUseCase,
         getMedicalCertificatesUseCase,
-        updateMedicalCertificateUseCase
+        updateMedicalCertificateUseCase,
+        deleteMedicalCertificateUseCase
     )
 
     const sportController = new SportController(
@@ -144,7 +151,8 @@ export function buildApp() {
     const paymentController = new PaymentController(
         createPaymentUseCase,
         getPaymentsUseCase,
-        updatePaymentUseCase
+        updatePaymentUseCase,
+        softDeletePaymentUseCase
     );
 
     //Miembro
@@ -163,15 +171,18 @@ export function buildApp() {
     server.post('/api/v1/disciplines', disciplineController.create.bind(disciplineController));
     server.put('/api/v1/disciplines/:id', disciplineController.update.bind(disciplineController));
     server.delete('/api/v1/disciplines/:id', disciplineController.delete.bind(disciplineController));
+    
     //Medical Certificate
     server.get('/api/v1/medical_certificates', medicalCertificateController.getAll.bind(medicalCertificateController));
     server.post('/api/v1/medical_certificates', medicalCertificateController.create.bind(medicalCertificateController));
-    server.put('/api/v1/medical_certificates', medicalCertificateController.update.bind(medicalCertificateController))
+    server.put('/api/v1/medical_certificates/:id', medicalCertificateController.update.bind(medicalCertificateController));
+    server.delete('/api/v1/medical_certificates/:id', medicalCertificateController.delete.bind(medicalCertificateController));
   
     //Payment
     server.get('/api/v1/pagos', paymentController.getAll.bind(paymentController));
     server.post('/api/v1/pagos', paymentController.create.bind(paymentController));
     server.put('/api/v1/pagos/:id', paymentController.update.bind(paymentController));
+    server.delete('/api/v1/pagos/:id', paymentController.delete.bind(paymentController));
   
     // Sports
     server.get('/api/v1/sports', sportController.getAll.bind(sportController));

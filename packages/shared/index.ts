@@ -63,7 +63,7 @@ export interface UpdatePaymentRequest {
   mes?: number;
   anio?: number;
   fecha_vencimiento?: string; // ISO Date String (YYYY-MM-DD)
-  fecha_pago?: string; // ISO Date String (YYYY-MM-DD)
+  fecha_pago?: string | null; // ISO Date String (YYYY-MM-DD)
   estado?: PaymentStatus;
 }
 
@@ -142,6 +142,14 @@ export interface CreateSportRequest {
     Require_certificado_medico: boolean;
 }
 
+export interface UpdateSportRequest { 
+    Cupo_maximo?:          number
+    Descripcion?:          string
+}
+
+
+
+
 
 // ==========================================
 // MedicalCertificate
@@ -164,7 +172,6 @@ export interface CreateMedicalCertificateRequest {
 }
 
 export interface UpdateMedicalCertificateRequest {
-  member_id?: string;
   fecha_emision?: string; // ISO Date String (YYYY-MM-DD)
   fecha_vencimiento?: string; // ISO Date String (YYYY-MM-DD)
   licencia_doctor?: string;

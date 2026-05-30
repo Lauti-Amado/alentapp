@@ -29,7 +29,7 @@ Garantizar un correcto funcionamiento del club debido a la tranquilidad de opera
 El modelo de datos de la entidad `MedicalCertificate` será:
 
 - `id`: Identificador único universal.
-- `memberId`: Foreign key del member.
+- `member_id`: Foreign key del member.
 - `fecha_emision`: Fecha de emisión del certificado.
 - `fecha_vencimiento`: Fecha de vencimiento del certificado.
 - `esta_validado`: Boolean (define si está vigente)
@@ -38,11 +38,11 @@ El modelo de datos de la entidad `MedicalCertificate` será:
 ### Contrato de API (@alentapp/shared)
 Se utilizará el paquete compartido para definir el cuerpo para el alta de un certificado médico. Cómo 'esta_validado' se inicializa en 'True', entonces no se manda como parámetro en el Request Body.
 
-*   Endpoint: `POST /api/v1/medical_certificate`
+*   Endpoint: `POST /api/v1/medical_certificates`
 *   Request Body:
 ```ts
 {
-    memberId: Int.
+    member_id: Int.
     fecha_emision: Date.
     fecha_vencimiento: Date.
     licencia_doctor: String.
@@ -52,16 +52,15 @@ Se utilizará el paquete compartido para definir el cuerpo para el alta de un ce
 ### Componentes de Arquitectura Hexagonal
 
 1. Puerto: MedicalCertificateRepository (Interface en el Dominio).
-2. Caso de Uso: CreateMedicalCertificate (Lógica que verifica si existe el member antes de llamar al repositorio).
+2. Caso de Uso: CreateMedicalCertificateUseCase (Lógica que verifica si existe el member antes de llamar al repositorio).
 4. Adaptador de Salida: `PostgresMedicalCertificateRepository` (Usando el método `create` de Prisma).
 4. Adaptador de Entrada: MedicalCertificateController (Ruta HTTP).
 
 ## Casos de Borde y Errores
 | Escenario                   | Resultado Esperado                            | Código HTTP               |
 | ----------------------------| --------------------------------------------- | ------------------------- |
-| Fecha vencimiento < Fecha emision | [Error de validación de coherencia entre fechas]       | 409 Conflict              |
-| Formato fecha inválida | [Error de validación de formato de fechas]              | 400 Bad Request           |
-| MemberID no encontrado | [Error de miembro  no existente]              | 400 Bad Request           |
+| Fecha vencimiento < Fecha emision | [Error de validación de coherencia entre fechas]       | 400 Bad Request              |
+| MemberID no encontrado | [Error de miembro no existente]              | 404 Not Found          |
 | Error de conexión a DB     | Mensaje: "Error interno, reintente más tarde" | 500 Internal Server Error |
 
 ## Plan de Implementación

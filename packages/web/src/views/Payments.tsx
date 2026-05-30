@@ -12,7 +12,7 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
-import { LuPencil, LuPlus, LuRefreshCw } from "react-icons/lu";
+import { LuPencil, LuPlus, LuRefreshCw, LuSearch, LuTrash2 } from "react-icons/lu";
 import { useEffect, useMemo, useState } from "react";
 import { paymentsService } from "../services/payments";
 import { membersService } from "../services/members";
@@ -76,6 +76,7 @@ export function PaymentsView() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [formData, setFormData] = useState<PaymentFormData>(createInitialFormData);
+  const [filterQuery, setFilterQuery] = useState("");
 
   const membersCollection = useMemo(
     () => createListCollection({
@@ -90,6 +91,34 @@ export function PaymentsView() {
   const membersById = useMemo(() => {
     return new Map(members.map((member) => [member.id, member]));
   }, [members]);
+
+  const filteredPayments = useMemo(() => {
+    const normalizedQuery = filterQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return payments;
+    }
+
+    return payments.filter((payment) => {
+      const member = membersById.get(payment.member_id);
+      const searchableText = [
+        member?.name,
+        member?.dni,
+        payment.estado,
+        `${payment.mes}/${payment.anio}`,
+        String(payment.mes),
+        String(payment.anio),
+        payment.monto.toFixed(2),
+        String(payment.monto),
+        payment.fecha_vencimiento,
+        payment.fecha_pago ?? "",
+      ]
+        .filter((value): value is string => value !== undefined)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(normalizedQuery);
+    });
+  }, [filterQuery, membersById, payments]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -131,6 +160,25 @@ export function PaymentsView() {
     setIsDialogOpen(true);
   };
 
+  const handleSoftDeletePayment = async (payment: PaymentDTO) => {
+    const confirmed = window.confirm(
+      `¿Estás seguro de que deseas dar de baja el pago del periodo ${payment.mes}/${payment.anio}? Esta acción conserva el registro para auditoría.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setError(null);
+    try {
+      await paymentsService.delete(payment.id);
+      await fetchData();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al dar de baja el pago";
+      setError(message);
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLocalError(null);
@@ -154,7 +202,7 @@ export function PaymentsView() {
           anio: Number(formData.anio),
           fecha_vencimiento: formData.fecha_vencimiento,
           estado: formData.estado,
-          ...(formData.fecha_pago ? { fecha_pago: formData.fecha_pago } : {}),
+          fecha_pago: formData.fecha_pago || null,
         };
         await paymentsService.update(editingPaymentId, updateData);
       } else {
@@ -328,6 +376,18 @@ export function PaymentsView() {
           </Box>
         )}
 
+        <Box position="relative" flex="1" maxW="400px">
+          <Box position="absolute" left="3" top="50%" transform="translateY(-50%)" color="fg.muted" pointerEvents="none">
+            <LuSearch />
+          </Box>
+          <Input
+            pl="9"
+            placeholder="Buscar pagos por socio, DNI, estado o período..."
+            value={filterQuery}
+            onChange={(event) => setFilterQuery(event.target.value)}
+          />
+        </Box>
+
         <Box bg="bg.panel" borderRadius="xl" boxShadow="sm" borderWidth="1px" overflow="hidden" minH="300px">
           {isLoading ? (
             <Center h="300px">
@@ -343,6 +403,10 @@ export function PaymentsView() {
                 <Button variant="ghost" onClick={fetchData}>Reintentar</Button>
               </Stack>
             </Center>
+          ) : filteredPayments.length === 0 ? (
+            <Center h="300px">
+              <Text color="fg.muted">No se encontraron pagos para la búsqueda ingresada.</Text>
+            </Center>
           ) : (
             <Table.Root size="md" variant="line" interactive>
               <Table.Header>
@@ -357,7 +421,7 @@ export function PaymentsView() {
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {payments.map((payment) => (
+                {filteredPayments.map((payment) => (
                   <Table.Row key={payment.id} _hover={{ bg: "bg.muted/30" }}>
                     <Table.Cell fontWeight="semibold" color="fg.emphasized">
                       {membersById.get(payment.member_id)?.name || payment.member_id}
@@ -380,6 +444,16 @@ export function PaymentsView() {
                         onClick={() => openEditModal(payment)}
                       >
                         <LuPencil />
+                      </IconButton>
+                      <IconButton
+                        variant="ghost"
+                        size="sm"
+                        colorPalette="red"
+                        aria-label="Dar de baja pago"
+                        disabled={payment.estado !== "Cancelado"}
+                        onClick={() => handleSoftDeletePayment(payment)}
+                      >
+                        <LuTrash2 />
                       </IconButton>
                     </Table.Cell>
                   </Table.Row>

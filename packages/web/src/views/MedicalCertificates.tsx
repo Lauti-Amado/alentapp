@@ -60,15 +60,11 @@ export function MedicalCertificatesView() {
             fecha_emision: m.fecha_emision.split("T")[0],
             fecha_vencimiento: m.fecha_vencimiento.split("T")[0],
             esta_validada: m.esta_validada,
+            licencia_doctor: m.licencia_doctor,
         });
         setIsEditOpen(true);
     };
-    const openLiftModal = (m: MedicalCertificateDTO) => {
-        setLiftingId(m.id);
-        setLiftMotivo("");
-        setIsLiftOpen(true);
-    };
-
+    
     const fetchMedicalCertificates = async () => {
         setIsLoading(true);
         setListError(null);
@@ -167,6 +163,16 @@ export function MedicalCertificatesView() {
         }
     };
 
+    const handleDelete = async (id: string,) => {
+        if (!window.confirm(`¿Estás seguro de que deseas eliminar el certificado médico? Esta acción no se puede deshacer.`)) return;
+        try {
+            await medicalCertificatesService.delete(id);
+            fetchMedicalCertificates();
+        } catch (err: any) {
+            alert(err.message || "Error al eliminar el certificado médico");
+        }
+    };
+
     const filteredMedicalCertificate = filterQuery.trim() === ""
         ? medicalCertificates
         : medicalCertificates.filter((m) => {
@@ -191,7 +197,7 @@ export function MedicalCertificatesView() {
                     </Stack>
                     <HStack gap="3">
                         <Button colorPalette="blue" size="md" onClick={openCreateModal}>
-                            <LuPlus /> Registrar Certificado médico
+                            <LuPlus /> Registrar Certificado Médico
                         </Button>
                     </HStack>
                 </Flex>
@@ -377,7 +383,7 @@ export function MedicalCertificatesView() {
                                                 <Button size="sm" variant="outline" onClick={() => openEditModal(m)}>
                                                     <LuPencil /> Editar
                                                 </Button>
-                                                <Button size="sm" colorPalette="red" variant="outline" onClick={() => handleDelete(d.id, d.motivo)}>
+                                                <Button size="sm" colorPalette="red" variant="outline" onClick={() => handleDelete(m.id)}>
                                                     <LuTrash2 /> Eliminar
                                                 </Button>
                                             </HStack>
@@ -390,6 +396,53 @@ export function MedicalCertificatesView() {
                     )}
                 </Box>
             </Stack>
+        </DialogRoot>
+
+        {/* Modal Editar Certificado Médico */}
+        <DialogRoot open={isEditOpen} onOpenChange={(e) => setIsEditOpen(e.open)}>
+            <DialogContent>
+                <form onSubmit={handleEditSubmit}>
+                    <DialogHeader>
+                        <DialogTitle>Editar Sanción</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody>
+                        <Stack gap="4">
+                            <Field label="Fecha de emision" required>
+                                <Input
+                                    type="date"
+                                    value={editForm.fecha_emision ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, fecha_emision: e.target.value })}
+                                    required
+                                />
+                            </Field>
+                            <Field label="Fecha de vencimiento" required>
+                                <Input
+                                    type="date"
+                                    value={editForm.fecha_vencimiento ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, fecha_vencimiento: e.target.value })}
+                                    required
+                                />
+                            </Field>
+                            <Field label="Licencia médico" required>
+                                <Input
+                                    value={editForm.licencia_doctor ?? ""}
+                                    onChange={(e) => setEditForm({ ...editForm, licencia_doctor: e.target.value })}
+                                    required
+                                />
+                            </Field>
+                        </Stack>
+                    </DialogBody>
+                    <DialogFooter>
+                        <DialogActionTrigger asChild>
+                            <Button variant="outline">Cancelar</Button>
+                        </DialogActionTrigger>
+                        <Button type="submit" colorPalette="blue" loading={isEditSubmitting}>
+                            Guardar Cambios
+                        </Button>
+                    </DialogFooter>
+                    <DialogCloseTrigger />
+                </form>
+            </DialogContent>
         </DialogRoot>
 
         </>

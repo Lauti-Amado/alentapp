@@ -45,17 +45,19 @@ export class PostgresMedicalCertificateRepository implements MedicalCertificateR
     }
 
     async findById(id: string): Promise<MedicalCertificateDTO | null> {
+        const medicalCertificate = await prisma.medicalCertificate.findUnique({
+            where: { id },
+        });
 
+        return medicalCertificate ? this.mapToDTO(medicalCertificate) : null;
     }
 
     async update(id: string, data: UpdateMedicalCertificateRequest): Promise<MedicalCertificateDTO> {
         const medicalCertificate = await prisma.medicalCertificate.update({
             where: { id },
             data: {
-                ...(data.member_id !== undefined && { member_id: data.member_id }),
                 ...(data.fecha_emision !== undefined && { fecha_emision: new Date(data.fecha_emision) }),
                 ...(data.fecha_vencimiento !== undefined && { fecha_vencimiento: new Date(data.fecha_vencimiento) }),
-                ...(data.esta_validado !== undefined && { esta_validado: data.esta_validado }),
                 ...(data.licencia_doctor !== undefined && { licencia_doctor: data.licencia_doctor }),
             },
         });
@@ -64,7 +66,9 @@ export class PostgresMedicalCertificateRepository implements MedicalCertificateR
     }
 
     async delete(id: string): Promise<void> {
-
+        await prisma.medicalCertificate.delete({
+            where: { id }
+        });
     }
 
     private mapToDTO(medicalCertificate: DBMedicalCertificate): MedicalCertificateDTO {
@@ -76,5 +80,57 @@ export class PostgresMedicalCertificateRepository implements MedicalCertificateR
             licencia_doctor: medicalCertificate.licencia_doctor,
             member_id: medicalCertificate.member_id,
         };
+    }
+
+    async darDeBajaCertificadoPorSocio(socioID: string, fecha_vencimiento_actual: Date): Promise<void> {
+        // 1. Busca el certificado más reciente
+        const ultimoCertificado = await prisma.medicalCertificate.findFirst({
+           where: {
+              member_id: socioID 
+           },
+           orderBy: {
+              fecha_vencimiento: 'desc'
+            }
+        });
+
+        if ((ultimoCertificado != null) && ultimoCertificado.fecha_vencimiento > fecha_vencimiento_actual) {
+            return;
+        }
+    
+        // 2. Si existe un registro, lo invalida
+        if (ultimoCertificado) {
+            await prisma.medicalCertificate.update({
+                where: {
+                    id: ultimoCertificado.id
+                },
+                data: {
+                esta_validada: false
+                }
+            });
+        }
+    }
+
+    async darDeAltaCertificadoPorSocio(socioID: string): Promise<void> {
+        // 1. Busca el certificado con la fecha de vencimiento más alta
+        const ultimoCertificado = await prisma.medicalCertificate.findFirst({
+           where: {
+                member_id: socioID 
+           },
+            orderBy: {
+                fecha_vencimiento: 'desc'
+            }
+        });
+
+        // 2. Si existe, lo valida
+        if (ultimoCertificado) {
+            await prisma.medicalCertificate.update({
+                where: {
+                    id: ultimoCertificado.id
+                },
+                data: {
+                    esta_validada: true
+                }
+            });
+        }
     }
 }

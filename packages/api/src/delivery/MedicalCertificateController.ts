@@ -10,7 +10,7 @@ export class MedicalCertificateController {
         private readonly createMedicalCertificateUseCase: CreateMedicalCertificateUseCase,
         private readonly getMedicalCertificatesUseCase: GetMedicalCertificatesUseCase,
         private readonly updateMedicalCertificateUseCase: UpdateMedicalCertificateUseCase,
-        // private readonly deleteMedicalCertificateUseCase: DeleteMedicalCertificateUseCase,
+        private readonly deleteMedicalCertificateUseCase: DeleteMedicalCertificateUseCase,
     ) {}
 
     async getAll(_request: FastifyRequest, reply: FastifyReply) {
@@ -31,13 +31,13 @@ export class MedicalCertificateController {
             return reply.status(201).send({ data: certificado });
         } catch (error: any) {
             if (error.message.includes('no existe')) {
-                return reply.status(404).send({ error: error.message });
+                return reply.status(404).send({ error: 'Error de miembro no existente' });
             }
-            if (error.message.includes('posterior')) {
-                return reply.status(400).send({ error: error.message });
+            if (error.message.includes('emision y vencimiento')) {
+                return reply.status(400).send({ error: 'Error de validación de coherencia entre fechas' });
             }
-            //return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
-            return reply.status(500).send({ error: error.message });
+
+            return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
         }
     }
 
@@ -50,15 +50,26 @@ export class MedicalCertificateController {
             return reply.status(200).send({ data: certificadoMedico });
         } catch (error: any) {
             if (error.message.includes('no existe')) {
-                return reply.status(400).send({ error: error.message });
-            }
-            if (error.message.includes('miembro')) {
-                return reply.status(400).send({ error: error.message });
+                return reply.status(404).send({ error: 'Error de inexistencia del certificado médico'  });
             }
             if (error.message.includes('rango de fechas')) {
-                return reply.status(409).send({ error: error.message });
+                return reply.status(400).send({ error: 'Error de validación de coherencia entre fechas' });
             }
-            return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
+            // return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
+            return reply.status(500).send({ error: error.message });
+        }
+    }
+
+    async delete(
+        request: FastifyRequest<{ Params: { id: string } }>,
+        reply: FastifyReply,
+    ) {
+        try {
+            const { id } = request.params;
+            await this.deleteMedicalCertificateUseCase.execute(id);
+            return reply.status(204).send(); // No Content
+        } catch (error: any) {
+            return reply.status(400).send({ error: error.message });
         }
     }
 }
