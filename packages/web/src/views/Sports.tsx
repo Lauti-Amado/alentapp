@@ -37,7 +37,7 @@ function DeleteConfirmDialog({
   isLoading 
 }: { 
   open: boolean; 
-  onOpenChange: (open: boolean) => void; 
+  onOpenChange: (details: { open: boolean }) => void; 
   sportName: string; 
   onConfirm: () => void; 
   isLoading: boolean;
@@ -247,274 +247,280 @@ export function SportsView() {
 
   return (
     <>
-      <DialogRoot open={isDialogOpen} onOpenChange={(e) => setIsDialogOpen(e.open)}>
-        <Stack gap="8">
-          <Flex justify="space-between" align="center">
-            <Stack gap="1">
-              <Heading size="2xl" fontWeight="bold">Administración de Deportes</Heading>
-              <Text color="fg.muted" fontSize="md">
-                Gestiona las disciplinas del club, sus cupos, precios y requerimientos.
-              </Text>
-            </Stack>
-            <HStack gap="3">
-              <Button variant="outline" onClick={fetchSports} disabled={isLoading}>
-                <LuRefreshCw /> Actualizar
-              </Button>
-              <Button colorPalette="blue" size="md" onClick={openCreateModal}>
-                <LuPlus /> Agregar Deporte
-              </Button>
-            </HStack>
-          </Flex>
+      {/* 👇 CONTENIDO PRINCIPAL - FUERA de cualquier DialogRoot */}
+      <Stack gap="8" data-testid="sports-view-container">
+        
+        {/* Header */}
+        <Flex justify="space-between" align="center">
+          <Stack gap="1">
+            <Heading size="2xl" fontWeight="bold" data-testid="page-title">
+              Administración de Deportes
+            </Heading>
+            <Text color="fg.muted" fontSize="md">
+              Gestiona las disciplinas del club, sus cupos, precios y requerimientos.
+            </Text>
+          </Stack>
+          <HStack gap="3">
+            <Button variant="outline" onClick={fetchSports} disabled={isLoading} data-testid="btn-refresh">
+              <LuRefreshCw /> Actualizar
+            </Button>
+            <Button colorPalette="blue" size="md" onClick={openCreateModal} data-testid="btn-add-sport">
+              <LuPlus /> Agregar Deporte
+            </Button>
+          </HStack>
+        </Flex>
 
-          {/* 👇 BUSCADOR (sin contador a la derecha) */}
-          <Flex gap="3" mb="4">
-            <Flex 
-              align="center" 
-              borderWidth="1px" 
-              borderRadius="md" 
-              px="3" 
-              bg="bg.muted"
-              borderColor="border.subtle"
-              flex="1"
-              maxW="400px"
-            >
-              <LuSearch color="gray" />
-              <Input
-                variant="subtle"
-                _focus={{ outline: "none", boxShadow: "none" }}
-                placeholder="Buscar deporte por nombre, descripción..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                ml="2"
-                h="10"
-              />
-              {searchTerm && (
-                <IconButton 
-                  size="xs" 
-                  variant="subtle" 
-                  onClick={() => setSearchTerm("")}
-                  aria-label="Limpiar búsqueda"
-                >
-                  <LuX />
-                </IconButton>
-              )}
-            </Flex>
-          </Flex>
-
-          {/* Modal para agregar/editar deporte */}
-          <DialogContent>
-            <form onSubmit={handleSubmit} noValidate>
-              <DialogHeader>
-                <DialogTitle>{editingSportId ? "Editar Deporte" : "Agregar Nuevo Deporte"}</DialogTitle>
-              </DialogHeader>
-              <DialogBody>
-                <Stack gap="4">
-                  
-                  <Field 
-                    label="Nombre del Deporte" 
-                    required 
-                    invalid={!!formErrors.Nombre} 
-                    errorText={formErrors.Nombre}
-                  >
-                    <Input 
-                      placeholder="Ej. Fútbol, Natación" 
-                      value={formData.Nombre}
-                      onChange={(e) => setFormData({ ...formData, Nombre: e.target.value })}
-                      required
-                      disabled={!!editingSportId} 
-                    />
-                  </Field>
-
-                  <Field 
-                    label="Cupo Máximo" 
-                    invalid={!!formErrors.Cupo_maximo} 
-                    errorText={formErrors.Cupo_maximo}
-                  >
-                    <Input 
-                      type="number"
-                      placeholder="Ej. 30" 
-                      value={formData.Cupo_maximo}
-                      onChange={(e) => setFormData({ ...formData, Cupo_maximo: Number(e.target.value) })}
-                      required
-                    />
-                  </Field>
-
-                  <Field 
-                    label="Precio Adicional ($)" 
-                    invalid={!!formErrors.Precio_adicional} 
-                    errorText={formErrors.Precio_adicional}
-                  >
-                    <Input 
-                      type="number"
-                      placeholder="Ej. 1500" 
-                      value={formData.Precio_adicional}
-                      onChange={(e) => setFormData({ ...formData, Precio_adicional: Number(e.target.value) })}
-                      required
-                      disabled={!!editingSportId}
-                    />
-                  </Field>
-
-                  <Field 
-                    label="Descripción" 
-                    invalid={!!formErrors.Descripcion} 
-                    errorText={formErrors.Descripcion}
-                  >
-                    <Input 
-                      placeholder="Breve descripción de la actividad" 
-                      value={formData.Descripcion}
-                      onChange={(e) => setFormData({ ...formData, Descripcion: e.target.value })}
-                    />
-                  </Field>
-
-                  <Field label="¿Requiere Certificado Médico?">
-                    <HStack gap="3" py="1">
-                      <input 
-                        type="checkbox"
-                        checked={formData.Require_certificado_medico}
-                        onChange={(e) => setFormData({ ...formData, Require_certificado_medico: e.target.checked })}
-                        disabled={!!editingSportId}
-                        style={{ width: "18px", height: "18px", cursor: editingSportId ? "not-allowed" : "pointer" }}
-                      />
-                      <Text fontSize="sm" color="fg.muted">Marcar si es obligatorio presentar certificado</Text>
-                    </HStack>
-                  </Field>
-
-                </Stack>
-              </DialogBody>
-              <DialogFooter>
-                <DialogActionTrigger asChild>
-                  <Button variant="outline">Cancelar</Button>
-                </DialogActionTrigger>
-                <Button type="submit" colorPalette="blue" loading={isSubmitting}>
-                  {editingSportId ? "Guardar Cambios" : "Crear Deporte"}
-                </Button>
-              </DialogFooter>
-              <DialogCloseTrigger />
-            </form>
-          </DialogContent>
-
-          {/* Mensaje de error */}
-          {error && (
-            <Box p="4" bg="red.50" color="red.700" borderRadius="md" border="1px solid" borderColor="red.200">
-              <Text fontWeight="bold">Error:</Text>
-              <Text>{error}</Text>
-            </Box>
-          )}
-
-          {/* ✅ Mensaje de éxito */}
-          {successMessage && (
-            <Box p="4" bg="green.50" color="green.700" borderRadius="md" border="1px solid" borderColor="green.200">
-              <Text fontWeight="bold">Éxito:</Text>
-              <Text>{successMessage}</Text>
-            </Box>
-          )}
-
-          {/* Tabla de deportes */}
-          <Box 
-            bg="bg.panel" 
-            borderRadius="xl" 
-            boxShadow="sm" 
+        {/* Buscador */}
+        <Flex gap="3" mb="4">
+          <Flex 
+            align="center" 
             borderWidth="1px" 
-            overflow="hidden"
-            minH="300px"
-            position="relative"
+            borderRadius="md" 
+            px="3" 
+            bg="bg.muted"
+            borderColor="border.subtle"
+            flex="1"
+            maxW="400px"
           >
-            {isLoading ? (
-              <Center h="300px">
-                <Stack align="center" gap="4">
-                  <Spinner size="xl" color="blue.500" />
-                  <Text color="fg.muted">Cargando deportes...</Text>
-                </Stack>
-              </Center>
-            ) : filteredSports.length === 0 ? (
-              <Center h="300px">
-                <Stack align="center" gap="4">
-                  <Text color="fg.muted">
-                    {searchTerm 
-                      ? "No se encontraron deportes que coincidan con la búsqueda." 
-                      : "No se encontraron deportes registrados."}
-                  </Text>
-                  {searchTerm && (
-                    <Button variant="ghost" onClick={() => setSearchTerm("")}>
-                      Limpiar búsqueda
-                    </Button>
-                  )}
-                </Stack>
-              </Center>
-            ) : (
-              <Table.Root size="md" variant="line" interactive>
-                <Table.Header>
-                  <Table.Row bg="bg.muted/50">
-                    <Table.ColumnHeader py="4">Nombre</Table.ColumnHeader>
-                    <Table.ColumnHeader py="4">Cupo Max.</Table.ColumnHeader>
-                    <Table.ColumnHeader py="4">Precio Adic.</Table.ColumnHeader>
-                    <Table.ColumnHeader py="4">Descripción</Table.ColumnHeader>
-                    <Table.ColumnHeader py="4">Certificado</Table.ColumnHeader>
-                    <Table.ColumnHeader py="4" textAlign="end">Acciones</Table.ColumnHeader>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {/* 👇 Usar filteredSports en lugar de sports */}
-                  {filteredSports.map((sport) => (
-                    <Table.Row key={sport.id} _hover={{ bg: "bg.muted/30" }}>
-                      <Table.Cell fontWeight="semibold" color="fg.emphasized">
-                        {sport.Nombre}
-                      </Table.Cell>
-                      <Table.Cell color="fg.muted">{sport.Cupo_maximo}</Table.Cell>
-                      <Table.Cell color="fg.muted">${sport.Precio_adicional}</Table.Cell>
-                      <Table.Cell color="fg.muted" maxW="250px" truncate>{sport.Descripcion}</Table.Cell>
-                      <Table.Cell>
-                        <Box 
-                          display="inline-block" 
-                          px="2" 
-                          py="0.5" 
-                          borderRadius="md" 
-                          bg={sport.Require_certificado_medico ? 'red.50' : 'green.50'} 
-                          color={sport.Require_certificado_medico ? 'red.700' : 'green.700'} 
-                          fontSize="xs" 
-                          fontWeight="bold"
-                        >
-                          {sport.Require_certificado_medico ? 'Obligatorio' : 'No requiere'}
-                        </Box>
-                      </Table.Cell>
-                      <Table.Cell textAlign="end">
-                        <HStack gap="2" justify="flex-end">
-                          <IconButton 
-                            variant="ghost" 
-                            size="sm" 
-                            aria-label="Editar deporte"
-                            onClick={() => openEditModal(sport)}
-                          >
-                            <LuPencil />
-                          </IconButton>
-                          <IconButton 
-                            variant="ghost" 
-                            size="sm" 
-                            colorPalette="red" 
-                            aria-label="Eliminar deporte"
-                            onClick={() => openDeleteDialog(sport.id, sport.Nombre)}
-                          >
-                            <LuTrash2 />
-                          </IconButton>
-                        </HStack>
-                      </Table.Cell>
-                    </Table.Row>
-                  ))}
-                </Table.Body>
-              </Table.Root>
+            <LuSearch color="gray" />
+            <Input
+              variant="subtle"
+              _focus={{ outline: "none", boxShadow: "none" }}
+              placeholder="Buscar deporte por nombre, descripción..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              ml="2"
+              h="10"
+            />
+            {searchTerm && (
+              <IconButton 
+                size="xs" 
+                variant="subtle" 
+                onClick={() => setSearchTerm("")}
+                aria-label="Limpiar búsqueda"
+              >
+                <LuX />
+              </IconButton>
             )}
+          </Flex>
+        </Flex>
+
+        {/* Mensajes de error/éxito */}
+        {error && (
+          <Box p="4" bg="red.50" color="red.700" borderRadius="md" border="1px solid" borderColor="red.200">
+            <Text fontWeight="bold">Error:</Text>
+            <Text>{error}</Text>
           </Box>
-        </Stack>
+        )}
+        {successMessage && (
+          <Box p="4" bg="green.50" color="green.700" borderRadius="md" border="1px solid" borderColor="green.200">
+            <Text fontWeight="bold">Éxito:</Text>
+            <Text>{successMessage}</Text>
+          </Box>
+        )}
+
+        {/* Tabla / Estado vacío / Loading */}
+        <Box 
+          data-testid="sports-table-container"
+          bg="bg.panel" 
+          borderRadius="xl" 
+          boxShadow="sm" 
+          borderWidth="1px" 
+          overflow="hidden"
+          minH="300px"
+          position="relative"
+        >
+          {isLoading ? (
+            <Center h="300px" data-testid="loading-spinner">
+              <Stack align="center" gap="4">
+                <Spinner size="xl" color="blue.500" />
+                <Text color="fg.muted">Cargando deportes...</Text>
+              </Stack>
+            </Center>
+          ) : filteredSports.length === 0 ? (
+            <Center h="300px" data-testid="empty-state">
+              <Stack align="center" gap="4">
+                <Text color="fg.muted" data-testid="empty-state-text">
+                  {searchTerm 
+                    ? "No se encontraron deportes que coincidan con la búsqueda." 
+                    : "No se encontraron deportes registrados."}
+                </Text>
+                {searchTerm && (
+                  <Button variant="ghost" onClick={() => setSearchTerm("")}>
+                    Limpiar búsqueda
+                  </Button>
+                )}
+              </Stack>
+            </Center>
+          ) : (
+            <Table.Root size="md" variant="line" interactive>
+              <Table.Header>
+                <Table.Row bg="bg.muted/50">
+                  <Table.ColumnHeader py="4">Nombre</Table.ColumnHeader>
+                  <Table.ColumnHeader py="4">Cupo Max.</Table.ColumnHeader>
+                  <Table.ColumnHeader py="4">Precio Adic.</Table.ColumnHeader>
+                  <Table.ColumnHeader py="4">Descripción</Table.ColumnHeader>
+                  <Table.ColumnHeader py="4">Certificado</Table.ColumnHeader>
+                  <Table.ColumnHeader py="4" textAlign="end">Acciones</Table.ColumnHeader>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {filteredSports.map((sport) => (
+                  <Table.Row key={sport.id} _hover={{ bg: "bg.muted/30" }}>
+                    <Table.Cell fontWeight="semibold" color="fg.emphasized">
+                      {sport.Nombre}
+                    </Table.Cell>
+                    <Table.Cell color="fg.muted">{sport.Cupo_maximo}</Table.Cell>
+                    <Table.Cell color="fg.muted">${sport.Precio_adicional}</Table.Cell>
+                    <Table.Cell color="fg.muted" maxW="250px" truncate>{sport.Descripcion}</Table.Cell>
+                    <Table.Cell>
+                      <Box 
+                        display="inline-block" 
+                        px="2" 
+                        py="0.5" 
+                        borderRadius="md" 
+                        bg={sport.Require_certificado_medico ? 'red.50' : 'green.50'} 
+                        color={sport.Require_certificado_medico ? 'red.700' : 'green.700'} 
+                        fontSize="xs" 
+                        fontWeight="bold"
+                      >
+                        {sport.Require_certificado_medico ? 'Obligatorio' : 'No requiere'}
+                      </Box>
+                    </Table.Cell>
+                    <Table.Cell textAlign="end">
+                      <HStack gap="2" justify="flex-end">
+                        <IconButton 
+                          variant="ghost" 
+                          size="sm" 
+                          aria-label="Editar deporte"
+                          onClick={() => openEditModal(sport)}
+                        >
+                          <LuPencil />
+                        </IconButton>
+                        <IconButton 
+                          variant="ghost" 
+                          size="sm" 
+                          colorPalette="red" 
+                          aria-label="Eliminar deporte"
+                          onClick={() => openDeleteDialog(sport.id, sport.Nombre)}
+                        >
+                          <LuTrash2 />
+                        </IconButton>
+                      </HStack>
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Root>
+          )}
+        </Box>
+      </Stack>
+
+      {/* 👇 MODAL CREAR/EDITAR - DialogRoot SOLO para el modal */}
+      <DialogRoot 
+        open={isDialogOpen} 
+        onOpenChange={({ open }) => setIsDialogOpen(open)}
+      >
+        <DialogContent data-testid="sport-modal">
+          <form onSubmit={handleSubmit} noValidate>
+            <DialogHeader>
+              <DialogTitle>{editingSportId ? "Editar Deporte" : "Agregar Nuevo Deporte"}</DialogTitle>
+            </DialogHeader>
+            <DialogBody>
+              <Stack gap="4">
+                
+                <Field 
+                  label="Nombre del Deporte" 
+                  required 
+                  invalid={!!formErrors.Nombre} 
+                  errorText={formErrors.Nombre}
+                >
+                  <Input 
+                    placeholder="Ej. Fútbol, Natación" 
+                    value={formData.Nombre}
+                    onChange={(e) => setFormData({ ...formData, Nombre: e.target.value })}
+                    required
+                    disabled={!!editingSportId} 
+                  />
+                </Field>
+
+                <Field 
+                  label="Cupo Máximo" 
+                  invalid={!!formErrors.Cupo_maximo} 
+                  errorText={formErrors.Cupo_maximo}
+                >
+                  <Input 
+                    type="number"
+                    placeholder="Ej. 30" 
+                    value={formData.Cupo_maximo}
+                    onChange={(e) => setFormData({ ...formData, Cupo_maximo: Number(e.target.value) })}
+                    required
+                  />
+                </Field>
+
+                <Field 
+                  label="Precio Adicional ($)" 
+                  invalid={!!formErrors.Precio_adicional} 
+                  errorText={formErrors.Precio_adicional}
+                >
+                  <Input 
+                    type="number"
+                    placeholder="Ej. 1500" 
+                    value={formData.Precio_adicional}
+                    onChange={(e) => setFormData({ ...formData, Precio_adicional: Number(e.target.value) })}
+                    required
+                    disabled={!!editingSportId}
+                  />
+                </Field>
+
+                <Field 
+                  label="Descripción" 
+                  invalid={!!formErrors.Descripcion} 
+                  errorText={formErrors.Descripcion}
+                >
+                  <Input 
+                    placeholder="Breve descripción de la actividad" 
+                    value={formData.Descripcion}
+                    onChange={(e) => setFormData({ ...formData, Descripcion: e.target.value })}
+                  />
+                </Field>
+
+                <Field label="¿Requiere Certificado Médico?">
+                  <HStack gap="3" py="1">
+                    <input 
+                      type="checkbox"
+                      checked={formData.Require_certificado_medico}
+                      onChange={(e) => setFormData({ ...formData, Require_certificado_medico: e.target.checked })}
+                      disabled={!!editingSportId}
+                      style={{ width: "18px", height: "18px", cursor: editingSportId ? "not-allowed" : "pointer" }}
+                    />
+                    <Text fontSize="sm" color="fg.muted">Marcar si es obligatorio presentar certificado</Text>
+                  </HStack>
+                </Field>
+
+              </Stack>
+            </DialogBody>
+            <DialogFooter>
+              <DialogActionTrigger asChild>
+                <Button variant="outline">Cancelar</Button>
+              </DialogActionTrigger>
+              <Button type="submit" colorPalette="blue" loading={isSubmitting}>
+                {editingSportId ? "Guardar Cambios" : "Crear Deporte"}
+              </Button>
+            </DialogFooter>
+            <DialogCloseTrigger />
+          </form>
+        </DialogContent>
       </DialogRoot>
 
-      {/* 👇 Diálogo de confirmación de eliminación */}
+      {/* 👇 MODAL ELIMINAR */}
       <DeleteConfirmDialog
         open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
+        onOpenChange={({ open }) => setDeleteDialogOpen(open)}
         sportName={sportToDelete?.name || ""}
         onConfirm={handleConfirmDelete}
         isLoading={isDeleting}
       />
     </>
   );
-}
+} este es el correcto? 
