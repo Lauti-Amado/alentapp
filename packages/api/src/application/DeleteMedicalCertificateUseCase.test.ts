@@ -59,4 +59,25 @@ describe('DeleteMedicalCertificateUseCase', () => {
         expect(mockMedicalCertificateRepo.delete).not.toHaveBeenCalled();
         expect(mockMedicalCertificateRepo.darDeAltaCertificadoPorSocio).not.toHaveBeenCalled();
     });
+
+    // Test de error al ejecutar la regla de negocio (dar de alta el certificado restante)
+    it('debe propagar el error si falla la activación del último certificado restante del socio', async () => {
+        vi.mocked(mockMedicalCertificateRepo.findById).mockResolvedValueOnce(existingDTO);
+        vi.mocked(mockMedicalCertificateRepo.delete).mockResolvedValueOnce(undefined);
+        vi.mocked(mockMedicalCertificateRepo.darDeAltaCertificadoPorSocio).mockRejectedValueOnce(
+            new Error('Error interno al actualizar estado del socio')
+        );
+
+        // Evalua que el caso de uso falle lanzando la excepción esperada
+        await expect(useCase.execute('uuid-medcer-1')).rejects.toThrow(
+            'Error interno al actualizar estado del socio'
+        );
+
+        // Asegura que los pasos previos sí llegaron a ejecutarse antes del quiebre
+        expect(mockMedicalCertificateRepo.findById).toHaveBeenCalledWith('uuid-medcer-1');
+        expect(mockMedicalCertificateRepo.delete).toHaveBeenCalledWith('uuid-medcer-1');
+        
+        // Verifica que se intentó llamar al método que falló
+        expect(mockMedicalCertificateRepo.darDeAltaCertificadoPorSocio).toHaveBeenCalledWith('uuid-member-1');
+    });
 });
