@@ -22,6 +22,27 @@ vi.mock('../infrastructure/PostgresMedicalCertificateRepository.js', () => {
             async darDeBajaCertificadoPorSocio(member_id: string, fecha_vencimiento: string) {
                 return;
             }
+
+            // AGREGADO: Necesario para que el caso de uso verifique la existencia antes de borrar
+            async findById(id: string) {
+                if (id === '00000000-0000-0000-0000-000000000000') {
+                    return null;
+                }
+                return {
+                    id: '11111111-1111-1111-1111-111111111111',
+                    licencia_doctor: '19/28190',
+                    fecha_emision: '2026-06-01',
+                    fecha_vencimiento: '2027-07-01',
+                    esta_validada: true,
+                    member_id: 'uuid-member-1',
+                };
+            }
+
+            async delete(id: string) { return; }
+
+            async darDeAltaCertificadoPorSocio(member_id: string) {
+                return;
+            }
         },
     };
 });
@@ -70,7 +91,7 @@ describe('MedicalCertificate API Integration Tests', () => {
     });
 
     describe('POST /api/v1/medical_certificates', () => {
-        
+
         // TEST 1: Certificado médico creado correctamente
         it('debe retornar 201 y el DTO del certificado médico creado', async () => {
             const response = await app.inject({
@@ -80,7 +101,7 @@ describe('MedicalCertificate API Integration Tests', () => {
             });
 
             expect(response.statusCode).toBe(201);
-            
+
             const body = JSON.parse(response.payload);
             expect(body.data.id).toBeDefined();
             expect(body.data.licencia_doctor).toBe(validPayload.licencia_doctor);
@@ -103,9 +124,35 @@ describe('MedicalCertificate API Integration Tests', () => {
 
             // Valida que devuelva el código de error correspondiente a recursos no encontrados
             expect(response.statusCode).toBe(404);
-            
+
             const body = JSON.parse(response.payload);
             // Validamos que el mensaje que devuelve la API contenga la palabra de error esperada
+            expect(body.error).toContain('no existe');
+        });
+    });
+
+    describe('DELETE /api/v1/medical_certificates/:id', () => {
+
+        // TEST 3: Certificado médico eliminado correctamente
+        it('debe retornar 204 No Content al eliminar un certificado médico existente', async () => {
+            const response = await app.inject({
+                method: 'DELETE',
+                url: '/api/v1/medical_certificates/11111111-1111-1111-1111-111111111111',
+            });
+
+            expect(response.statusCode).toBe(204);
+            expect(response.payload).toBe('');
+        });
+
+        // TEST 4: Certificado médico no eliminado debido a su inexistencia
+        it('debe retornar 400 si el certificado médico a eliminar no existe', async () => {
+            const response = await app.inject({
+                method: 'DELETE',
+                url: '/api/v1/medical_certificates/00000000-0000-0000-0000-000000000000',
+            });
+
+            expect(response.statusCode).toBe(400);
+            const body = JSON.parse(response.payload);
             expect(body.error).toContain('no existe');
         });
     });
