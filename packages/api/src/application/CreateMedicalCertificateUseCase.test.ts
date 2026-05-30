@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CreateMedicalCertificateUseCase } from './CreateMedicalCertificateUseCase.js';
 import { MedicalCertificateRepository } from '../domain/MedicalCertificateRepository.js';
-import { PostgresMemberRepository } from '../infrastructure/PostgresMemberRepository.js';
 import { MemberRepository } from '../domain/MemberRepository.js';
 import { MedicalCertificateValidator } from '../domain/services/MedicalCertificateValidator.js';
 import { CreateMedicalCertificateRequest, MedicalCertificateDTO, MemberDTO } from '@alentapp/shared';
@@ -20,12 +19,11 @@ describe('CreateMedicalCertificateUseCase', () => {
         validarFechasCreate: vi.fn()
     } as unknown as MedicalCertificateValidator;
 
-    const memberRepo = new PostgresMemberRepository();
-
+    // Pasamos los mocks limpios al caso de uso
     const useCase = new CreateMedicalCertificateUseCase(mockMedicalCertificateRepo, mockValidator, mockMemberRepo);
 
     const validPayload: CreateMedicalCertificateRequest = {
-        member_id: 2,
+        member_id: 'uuid-member-1', // Cambiado a string para que coincida con el DTO
         fecha_emision: '2026-06-01',
         fecha_vencimiento: '2026-07-01',
         licencia_doctor: "81/131"
@@ -51,7 +49,6 @@ describe('CreateMedicalCertificateUseCase', () => {
         vi.clearAllMocks();
     });
 
-   // Testea que funcinone el caso de uso
     it('debe crear el certificado médico exitosamente cuando pasa todas las reglas de negocio', async () => {
         vi.mocked(mockMemberRepo.findById).mockResolvedValueOnce(mockMember);
         vi.mocked(mockValidator.validarFechasCreate).mockResolvedValueOnce(undefined); 
@@ -59,7 +56,8 @@ describe('CreateMedicalCertificateUseCase', () => {
 
         const result = await useCase.execute(validPayload);
 
-        expect(mockMemberRepo.findByDni).toHaveBeenCalledWith(
+        // CORREGIDO: Se verifica findById que es el espía real configurado arriba
+        expect(mockMemberRepo.findById).toHaveBeenCalledWith(
             validPayload.member_id
         );
         expect(mockValidator.validarFechasCreate).toHaveBeenCalledWith(
@@ -73,13 +71,11 @@ describe('CreateMedicalCertificateUseCase', () => {
         expect(result.id).toBe('uuid-medic-1');
     });
 
-    // Testea que si el miembro no existe tire un error
     it('debe lanzar un error si el socio provisto no existe', async () => {
-        vi.mocked(mockMemberRepo.findById).mockResolvedValueOnce(null); // Simulamos que NO existe
+        vi.mocked(mockMemberRepo.findById).mockResolvedValueOnce(null);
 
         await expect(useCase.execute(validPayload)).rejects.toThrow('El socio provisto no existe');
         
-        // Verificamos que al fallar acá, NO siga ejecutando lo de abajo
         expect(mockValidator.validarFechasCreate).not.toHaveBeenCalled();
         expect(mockMedicalCertificateRepo.create).not.toHaveBeenCalled();
     });
