@@ -110,4 +110,26 @@ describe('Sport API End-to-End Tests', () => {
         expect(dbSport?.Descripcion).toBe('Descripción actualizada desde test E2E');
         expect(dbSport?.Nombre).toBe(sportName);
     });
+
+    it('DELETE: Debe eliminar físicamente el deporte de la base de datos', async () => {
+        // Aseguramos que el deporte existe antes de borrarlo
+        expect(createdSportId).toBeDefined();
+
+        const response = await app.inject({
+            method: 'DELETE',
+            url: `/api/v1/sports/${createdSportId}`
+        });
+
+        expect(response.statusCode).toBe(204);
+
+        // Verificar directamente en PostgreSQL que el registro desapareció
+        const dbSport = await prisma.sport.findUnique({ 
+            where: { id: createdSportId } 
+        });
+        
+        expect(dbSport).toBeNull();
+        
+        // Limpiamos la variable para que el afterAll no intente borrarlo otra vez
+        createdSportId = '';
+    });
 });

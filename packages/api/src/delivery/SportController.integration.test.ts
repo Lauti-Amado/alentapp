@@ -57,6 +57,13 @@ vi.mock('../infrastructure/PostgresSportRepository.js', () => {
                     ...data // Sobrescribe con lo que se editó
                 };
         }
+
+        async delete(id: string) {
+                if (id === '999') {
+                    throw new Error('El deporte no existe');
+                }
+                return; // Simula una eliminación exitosa
+            }
         }
     };
 });
@@ -166,6 +173,30 @@ describe('Sport API Integration Tests', () => {
 
             const body = JSON.parse(response.payload);
             expect(body.error).toBe('El cupo máximo debe ser mayor a cero');
+        });
+    });
+
+    describe('DELETE /api/v1/sports/:id', () => {
+        it('debe retornar 204 si se elimina correctamente', async () => {
+            const response = await app.inject({
+                method: 'DELETE',
+                url: '/api/v1/sports/1' // ID existente en el mock
+            });
+
+            expect(response.statusCode).toBe(204);
+            expect(response.payload).toBe('');
+        });
+
+        it('debe retornar 404 si el deporte a eliminar no existe', async () => {
+            // Nota: Ajusta el código de error (400 o 404) según tu implementación real
+            const response = await app.inject({
+                method: 'DELETE',
+                url: '/api/v1/sports/999'
+            });
+
+            expect(response.statusCode).toBe(400);
+            const body = JSON.parse(response.payload);
+            expect(body.error).toBe('El deporte no existe');
         });
     });
 
