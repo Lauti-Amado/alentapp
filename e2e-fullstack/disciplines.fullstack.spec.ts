@@ -40,6 +40,15 @@ test.describe('Disciplines Full-Stack E2E', () => {
     expect(res.status()).toBe(201);
   });
 
+  test.afterAll(async ({ request }) => {
+    // Obtener el id del socio y eliminarlo para no contaminar otras suites
+    const res = await request.get(`${API_URL}/api/v1/socios/dni/${SEED_MEMBER.dni}`);
+    if (res.ok()) {
+        const { data } = await res.json();
+        await request.delete(`${API_URL}/api/v1/socios/${data.id}`);
+    }
+  });
+
   test('debe mostrar el estado vacío cuando no hay sanciones en la DB', async ({ page }) => {
     await page.goto('/disciplines');
     await expect(page.getByText('No hay sanciones registradas.')).toBeVisible({ timeout: 10000 });
