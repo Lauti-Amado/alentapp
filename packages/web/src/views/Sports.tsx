@@ -523,4 +523,4 @@ export function SportsView() {
       />
     </>
   );
-} este es el correcto? 
+} 
