@@ -350,7 +350,7 @@ export function MedicalCertificatesView() {
                     ) : filteredMedicalCertificate.length === 0 ? (
                         <Center h="200px">
                             <Text color="fg.muted">
-                                {filterQuery.trim() ? "No se encontraron certificados médicos para el socio buscado." : "No hay certificados médicos registradas."}
+                                {filterQuery.trim() ? "No se encontraron certificados médicos para el socio buscado." : "No hay certificados médicos registrados."}
                             </Text>
                         </Center>
                     ) : (
@@ -403,7 +403,7 @@ export function MedicalCertificatesView() {
             <DialogContent>
                 <form onSubmit={handleEditSubmit}>
                     <DialogHeader>
-                        <DialogTitle>Editar Sanción</DialogTitle>
+                        <DialogTitle>Editar Certificado Médico</DialogTitle>
                     </DialogHeader>
                     <DialogBody>
                         <Stack gap="4">
