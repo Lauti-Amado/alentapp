@@ -3,6 +3,17 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import type { Page } from '@playwright/test';
 
+/**
+ * Tests E2E Full-Stack para la vista de Payments.
+ * NO hay mocks de red. Playwright interactua con:
+ *   - El frontend React en http://localhost:5174
+ *   - La API Fastify real en http://localhost:3001
+ *   - La base de datos PostgreSQL de test (alentapp_test_db)
+ *
+ * Cada test prepara y limpia sus propios datos para no depender del orden
+ * de ejecucion. Los Members se insertan directamente en PostgreSQL porque
+ * el objetivo de esta suite es probar los flujos UI de Payment.
+ */
 const API_URL = 'http://localhost:3001';
 const DB_URL = 'postgresql://admin:password123@localhost:5433/alentapp_test_db';
 
@@ -26,6 +37,7 @@ type PaymentsPageDiagnostics = {
 const createdMemberIds: string[] = [];
 const createdPaymentIds: string[] = [];
 
+// Inserta el Member requerido por Payment sin depender de la pantalla ni del endpoint de Members.
 async function createMemberFixture(name: string): Promise<MemberFixture> {
   const uniqueValue = randomUUID();
   const member = {
@@ -51,6 +63,7 @@ async function createMemberFixture(name: string): Promise<MemberFixture> {
   return member;
 }
 
+// Prepara un Payment activo mediante la API real para los flujos que parten de un registro existente.
 async function createPaymentFixture(
   request: APIRequestContext,
   memberId: string,
@@ -74,6 +87,20 @@ async function createPaymentFixture(
   return payment;
 }
 
+// Representa el paso operativo previo a la baja logica: cancelar no completa deleted_at.
+async function cancelPaymentFixture(
+  request: APIRequestContext,
+  paymentId: string,
+): Promise<void> {
+  const response = await request.put(`${API_URL}/api/v1/pagos/${paymentId}`, {
+    data: {
+      estado: 'Cancelado',
+    },
+  });
+  expect(response.status()).toBe(200);
+}
+
+// Elimina primero Payments y despues Members para respetar la foreign key entre ambas tablas.
 async function cleanupFixtures(): Promise<void> {
   const client = new pg.Client({ connectionString: DB_URL });
   await client.connect();
@@ -92,6 +119,7 @@ async function cleanupFixtures(): Promise<void> {
   }
 }
 
+// Conserva contexto util si la vista no renderiza o alguna consulta inicial falla.
 function createPaymentsPageDiagnostics(page: Page): PaymentsPageDiagnostics {
   const diagnostics: PaymentsPageDiagnostics = {
     consoleErrors: [],
@@ -182,6 +210,7 @@ async function openPaymentsPage(page: Page): Promise<void> {
   await expectPaymentsPageReady(page, diagnostics);
 }
 
+// La tabla muestra el nombre del Member; el id queda como fallback si no pudo enriquecerse.
 function getPaymentRow(page: Page, member: Pick<MemberFixture, 'id' | 'name'>) {
   return page
     .getByRole('row')
@@ -194,7 +223,9 @@ test.describe('Payments Full-Stack E2E', () => {
     await cleanupFixtures();
   });
 
-  // Alta de Payment: prepara el Member en PostgreSQL y crea el Payment desde UI.
+  // TEST E2E 1: Alta de Payment.
+  // Verifica el flujo completo de creacion desde el formulario hasta la tabla real.
+  // Flujo: Browser -> React -> POST /api/v1/pagos -> PostgreSQL -> GET -> tabla.
   test('debe crear un pago real para un socio existente y mostrarlo como Pendiente', async ({ page }) => {
     const member = await createMemberFixture(`Socio Alta Payment E2E ${randomUUID()}`);
 
@@ -220,7 +251,9 @@ test.describe('Payments Full-Stack E2E', () => {
     await expect(paymentRow).toContainText('Pendiente');
   });
 
-  // Modificacion de Payment: prepara Member y Payment propios, y edita desde UI.
+  // TEST E2E 2: Modificacion de Payment.
+  // Verifica que la edicion desde la UI persiste y muestra los nuevos datos.
+  // Flujo: fixture previo -> Browser -> React -> PUT /api/v1/pagos/:id -> PostgreSQL -> GET -> tabla.
   test('debe editar un pago existente desde la interfaz y mostrar los datos actualizados', async ({ page, request }) => {
     const member = await createMemberFixture(`Socio Modificacion Payment E2E ${randomUUID()}`);
     await createPaymentFixture(request, member.id);
@@ -242,5 +275,27 @@ test.describe('Payments Full-Stack E2E', () => {
     await expect(paymentRow).toContainText('$18000.00', { timeout: 10000 });
     await expect(paymentRow).toContainText('6/2026');
     await expect(paymentRow).toContainText('2026-06-10');
+  });
+
+  // TEST E2E 3: Baja logica de Payment.
+  // Verifica que un pago cancelado deja el listado activo despues de confirmar la baja desde la UI.
+  // Flujo: fixture cancelado -> Browser -> confirm -> DELETE /api/v1/pagos/:id -> PostgreSQL -> GET -> tabla.
+  test('debe dar de baja un pago cancelado desde la interfaz y ocultarlo del listado normal', async ({ page, request }) => {
+    const member = await createMemberFixture(`Socio Baja Payment E2E ${randomUUID()}`);
+    const payment = await createPaymentFixture(request, member.id);
+    await cancelPaymentFixture(request, payment.id);
+
+    await openPaymentsPage(page);
+
+    const paymentRow = getPaymentRow(page, member);
+    await expect(paymentRow).toContainText('Cancelado', { timeout: 10000 });
+
+    page.once('dialog', async (dialog) => {
+      expect(dialog.type()).toBe('confirm');
+      await dialog.accept();
+    });
+    await paymentRow.getByRole('button', { name: 'Dar de baja pago' }).click();
+
+    await expect(getPaymentRow(page, member)).toHaveCount(0, { timeout: 10000 });
   });
 });
