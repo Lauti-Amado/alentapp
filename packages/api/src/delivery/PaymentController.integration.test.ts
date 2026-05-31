@@ -39,6 +39,21 @@ describe('Payment API Integration Tests', () => {
         return member;
     };
 
+    const createTestPayment = async (estado: 'Pendiente' | 'Cancelado' = 'Pendiente') => {
+        const member = await createTestMember();
+
+        return prisma.payment.create({
+            data: {
+                member_id: member.id,
+                monto: 15000,
+                mes: 5,
+                anio: 2026,
+                fecha_vencimiento: new Date('2026-05-10T00:00:00.000Z'),
+                estado,
+            },
+        });
+    };
+
     beforeAll(async () => {
         app = buildApp();
         await app.ready();
@@ -125,6 +140,56 @@ describe('Payment API Integration Tests', () => {
             expect(response.statusCode).toBe(400);
             const body = JSON.parse(response.payload);
             expect(body.error).toBe('El miembro no existe');
+        });
+    });
+
+    describe('PUT /api/v1/pagos/:id', () => {
+        it('debe modificar un Payment existente usando API y base de datos de test', async () => {
+            const payment = await createTestPayment();
+            const response = await app.inject({
+                method: 'PUT',
+                url: `/api/v1/pagos/${payment.id}`,
+                payload: {
+                    monto: 18000,
+                    mes: 6,
+                    anio: 2026,
+                    fecha_vencimiento: '2026-06-10',
+                },
+            });
+
+            expect(response.statusCode).toBe(200);
+            const body = JSON.parse(response.payload);
+            expect(body.data).toEqual(expect.objectContaining({
+                id: payment.id,
+                monto: 18000,
+                mes: 6,
+                anio: 2026,
+                fecha_vencimiento: '2026-06-10',
+                estado: 'Pendiente',
+            }));
+
+            const dbPayment = await prisma.payment.findUnique({
+                where: { id: payment.id },
+            });
+            expect(dbPayment?.monto).toBe(18000);
+            expect(dbPayment?.mes).toBe(6);
+            expect(dbPayment?.anio).toBe(2026);
+            expect(dbPayment?.fecha_vencimiento.toISOString().split('T')[0]).toBe('2026-06-10');
+        });
+
+        it('debe retornar 409 si intenta modificar un Payment cancelado', async () => {
+            const payment = await createTestPayment('Cancelado');
+            const response = await app.inject({
+                method: 'PUT',
+                url: `/api/v1/pagos/${payment.id}`,
+                payload: {
+                    monto: 18000,
+                },
+            });
+
+            expect(response.statusCode).toBe(409);
+            const body = JSON.parse(response.payload);
+            expect(body.error).toBe('No se puede modificar un pago cancelado');
         });
     });
 });
