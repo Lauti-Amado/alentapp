@@ -3,9 +3,9 @@ import { test, expect } from '@playwright/test';
 const API_URL = 'http://localhost:3001';
 
 const SEED_MEMBER = {
-    dni: '99988877',
+    dni: '45910179',
     name: 'Socio Test MedicalCertificate',
-    email: 'alentapp@e2e.com',
+    email: 'alentappmedcer@e2e.com',
     birthdate: '2000-07-10',
     category: 'Pleno' as const,
 };
@@ -20,11 +20,20 @@ test.describe('Medical Certificates Full-Stack E2E', () => {
     test.beforeEach(async ({ request }) => {
         const res = await request.post(`${API_URL}/api/v1/socios`, {
             data: SEED_MEMBER,
-            timeout: 5000 
+            timeout: 5000
         });
-        
+
         // Acepta 201 (Creado con éxito) o 409 (Ya existía de un test previo)
         expect([201, 409]).toContain(res.status());
+    });
+
+    test.afterAll(async ({ request }) => {
+        // Obtener el id del socio y eliminarlo para no contaminar otras suites
+        const res = await request.get(`${API_URL}/api/v1/socios/dni/${ SEED_MEMBER.dni}`);
+        if (res.ok()) {
+            const { data } = await res.json();
+            await request.delete(`${API_URL}'/api/v1/socios/'${data.id}`);
+        }
     });
 
     test('debe mostrar el estado vacío cuando no hay certificados médicos en la DB', async ({ page }) => {
