@@ -79,10 +79,9 @@ Juntas proporcionan una visión completa: cuánta gente lo usa (Rate), si funcio
 - **Grafana** se encarga del **almacenamiento, consulta y visualización** de esos datos.
 
 El flujo típico en una arquitectura moderna es:
-
-                                                                          ├── Prometheus (métricas)
-                                                                          ├── Tempo (trazas)
-                                                                          └── Loki (logs)
+ - Prometheus (métricas) 
+ - Tempo (trazas)
+ - Loki (logs)
 
 
 **Grafana Labs** es además uno de los principales contribuidores de OpenTelemetry y mantiene backends nativos compatibles con OTLP (Tempo, Mimir, Loki) y su propio collector (Grafana Alloy). En resumen: OpenTelemetry es el estándar de instrumentación, Grafana es la ventana para ver y analizar esos datos.
