@@ -331,3 +331,144 @@ API (Node.js / Fastify)
  `http://0.0.0.0:9464/metrics` — Prometheus realiza el pull (scrape) directamente de esta URL cada 15 segundos.
 
 ---
+
+### **c) Dashboard RED en Grafana**
+
+Se diseña el dashboard **"RED — Alentapp API"** con exactamente 6 paneles funcionales, siguiendo las consultas PromQL de referencia del enunciado.
+
+**Panel 1: Requests por segundo (Rate)**
+
+| Campo | Valor |
+| ----- | ----- |
+| Nombre | Requests por segundo |
+| Tipo | Time series |
+| Propósito | Ver el tráfico actual (RPS) |
+
+rate(http\_server\_duration\_count\[1m\])
+
+Interpretación: picos súbitos indican aumento de carga; caídas a 0 indican pérdida de conectividad de red o caída del servicio.
+
+---
+
+**Panel 2: Tasa de error (Errors)**
+
+| Campo | Valor |
+| ----- | ----- |
+| Nombre | Tasa de error (5xx) |
+| Tipo | Time series |
+| Propósito | Porcentaje de requests que fallan |
+
+sum(rate(http\_server\_duration\_count{status=\~"5.."}\[1m\])) /  
+sum(rate(http\_server\_duration\_count\[1m\])) \* 100
+
+Interpretación: mide la confiabilidad del servicio. Valor por encima del 5% durante 3 minutos es señal de alerta crítica.
+
+---
+
+**Panel 3: Latencia p95/p99 (Duration)**
+
+| Campo | Valor |
+| ----- | ----- |
+| Nombre | Latencia API (p95 / p99) |
+| Tipo | Time series |
+| Propósito | Medir la performance percibida por usuarios |
+
+histogram\_quantile(0.95, sum(rate(http\_server\_duration\_bucket\[5m\])) by (le))  
+histogram\_quantile(0.99, sum(rate(http\_server\_duration\_bucket\[5m\])) by (le))
+
+Interpretación: permite validar SLOs de latencia. Latencia p95 sostenida por encima de 500ms indica degradación.
+
+---
+
+**Panel 4: Distribución por código de estado HTTP**
+
+| Campo | Valor |
+| ----- | ----- |
+| Nombre | Por status code |
+| Tipo | Stacked area |
+| Propósito | Distribución de respuestas exitosas vs errores |
+
+sum by (status) (rate(http\_server\_duration\_count\[5m\]))
+
+Interpretación: facilita la distinción entre errores de cliente (4xx) y errores de servidor (5xx), y permite detectar ataques o rutas inexistentes.
+
+---
+
+**Panel 5: Memoria del proceso**
+
+| Campo | Valor |
+| ----- | ----- |
+| Nombre | Memoria del proceso |
+| Tipo | Time series |
+| Propósito | Controlar el consumo de RAM del proceso |
+
+process\_memory\_usage\_bytes / 1024 / 1024
+
+Interpretación: crecimiento escalonado ininterrumpido confirma memory leak. Alerta recomendada si supera 400 MB.
+
+---
+
+**Panel 6: Endpoints más lentos (top 5\)**
+
+| Campo | Valor |
+| ----- | ----- |
+| Nombre | Endpoints más lentos (Top 5\) |
+| Tipo | Bar chart (horizontal) |
+| Propósito | Identificar cuellos de botella por ruta |
+
+topk(5, avg by (route) (http\_server\_duration\_ms))
+
+Interpretación: permite priorizar optimizaciones de endpoints con mayor impacto en la experiencia del usuario.
+
+---
+
+## **SECCIÓN 2.3: ARCHIVOS A GENERAR EN FASE 3**
+
+Los siguientes archivos deberán crearse o modificarse en la Fase 3 de implementación:
+
+**Archivos nuevos a crear:**
+
+1. `packages/api/Dockerfile.prod`  
+2. `packages/web/Dockerfile.prod`  
+3. `docker-compose.prod.yml`  
+4. `packages/api/src/infrastructure/telemetry.ts`  
+5. `observability/prometheus/prometheus.yml` — configuración de scrape apuntando a `api:9464`.  
+6. `observability/grafana/provisioning/datasources/datasources.yml` — conexión automática a Prometheus.  
+7. `observability/grafana/provisioning/dashboards/dashboards.yml` + `observability/grafana/provisioning/dashboards/red_dashboards.json` — dashboard preconfigurado (Infrastructure as Code).
+
+**Archivos a modificar:**
+
+1. `packages/api/src/app.ts` — agregar `import './infrastructure/telemetry.js'` como primer import.
+2. `packages/api/src/delivery/DisciplineController.ts`
+3. `packages/api/src/delivery/LockerController.ts`
+4. `packages/api/src/delivery/MedicalCertificateController.ts`
+5. `packages/api/src/delivery/MemberController.ts`
+7. `packages/api/src/delivery/PaymentController.ts`
+8. `packages/api/src/delivery/SportController.ts`
+---
+
+## **SECCIÓN 2.4: DECISIONES ARQUITECTÓNICAS**
+
+**Uso de `node:22-alpine` como imagen base:**  
+ Se utiliza la versión 22 (LTS activa) en lugar de versiones anteriores para garantizar compatibilidad con las últimas versiones del SDK de OpenTelemetry y las auto-instrumentaciones. Alpine reduce el tamaño base a \~170 MB frente a los \~1 GB de la imagen completa, sin sacrificar funcionalidad para este stack (Fastify \+ Prisma no requiere módulos nativos con dependencias de glibc).
+
+**Uso de Multi-stage Builds:**  
+ Permite cumplir con el criterio de evaluación de "buenas prácticas y optimización productiva". Al excluir devDependencies y compiladores del stage final, se reduce la superficie de ataque y se alcanza la meta de reducción ≥ 70% del tamaño original (de \~1 GB a \~250-300 MB en la API, de \~570 MB a \~30 MB en la Web).
+
+**Uso de Nginx para el frontend:**  
+ La compilación del SPA de React como artefacto estático garantiza que las herramientas utilizadas coincidan con entornos enterprise reales. Nginx facilita la configuración de certificados SSL, control de caché y elimina la sobrecarga de usar Node.js para servir HTML/CSS/JS. La imagen `nginx:stable-alpine` pesa \~23 MB.
+
+**Uso de OpenTelemetry:**  
+ Actúa como estándar agnóstico al proveedor de monitoreo. La auto-instrumentación disminuye la intrusión en el código existente de Fastify. Exportar directamente a Prometheus via `@opentelemetry/exporter-prometheus` evita la necesidad de un OTel Collector adicional, simplificando la arquitectura para este contexto.
+
+**Uso de Prometheus (modelo Pull):**  
+ Garantiza que el backend de la API nunca sufra caídas de rendimiento si la plataforma de monitoreo colapsa. El scrape pull es unidireccional: Prometheus toma los datos de la API, no al revés.
+
+**Uso de Grafana con provisioning por código:**  
+ El dashboard se define como JSON en `observability/grafana/provisioning/dashboards/` y el datasource como YAML. Esto garantiza que la infraestructura de observabilidad sea reproducible y versionada (Infrastructure as Code), cumpliendo la consigna de "Configuration as Code".
+
+**Estrategia de seguridad (`read_only`, `cap_drop`, `no-new-privileges`):**  
+ Alineada con los CIS Docker Benchmarks. `read_only: true` previene que un proceso comprometido escriba al filesystem del contenedor. `cap_drop: ALL` elimina todas las Linux capabilities y `cap_add: NET_BIND_SERVICE` restaura solo la necesaria para escuchar en puertos \< 1024\. `no-new-privileges` impide que el proceso escale privilegios vía `setuid`.
+
+**Variables sensibles mediante `.env`:**  
+ Las credenciales de la base de datos (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL`) se leen desde un archivo `.env` que está listado en `.gitignore` y no se comitea al repositorio. El compose define los valores como `${VAR}` y documenta los defaults en un `.env.example` versionado.
