@@ -1,0 +1,115 @@
+# =============================================================================
+# packages/api/Dockerfile.prod
+# Multi-stage build (3 etapas) para la API Fastify/Prisma/PostgreSQL.
+# Build context esperado: raíz del monorepo (.)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Stage 1 — deps
+# Instala SOLO las dependencias de producción (--omit=dev).
+# El resultado se copia al runtime stage, evitando incluir devDependencies.
+# -----------------------------------------------------------------------------
+FROM node:22-alpine AS deps
+
+WORKDIR /app
+
+# Copia únicamente los manifiestos de paquetes para aprovechar la caché de
+# Docker: esta capa solo se invalida cuando cambian las dependencias.
+COPY package.json package-lock.json ./
+COPY packages/api/package.json        ./packages/api/
+COPY packages/shared/package.json     ./packages/shared/
+COPY packages/web/package.json        ./packages/web/
+
+# npm ci es determinista y respeta el lockfile.
+# --omit=dev excluye devDependencies → node_modules de producción limpio.
+RUN npm ci --omit=dev
+
+# -----------------------------------------------------------------------------
+# Stage 2 — build
+# Instala todas las dependencias (incluidas devDeps) y compila TypeScript a JS.
+# Este stage no llega al runtime: solo genera los artefactos de compilación.
+# -----------------------------------------------------------------------------
+FROM node:22-alpine AS build
+
+WORKDIR /app
+
+# Manifiestos primero (caché de dependencias)
+COPY package.json package-lock.json ./
+COPY packages/api/package.json        ./packages/api/
+COPY packages/shared/package.json     ./packages/shared/
+COPY packages/web/package.json        ./packages/web/
+
+# npm ci es determinista y respeta el lockfile.
+# --omit=dev excluye devDependencies → node_modules de producción limpio.
+# --workspace filtra solo las workspaces necesarias para la API: evita instalar
+# las dependencias de packages/web (React, Vite, Chakra UI, etc.) en la imagen.
+RUN npm ci --omit=dev \
+    --workspace=packages/api \
+    --workspace=packages/shared \
+    --include-workspace-root
+
+# Copia el código fuente completo del monorepo
+COPY tsconfig.json ./
+COPY packages/shared/     ./packages/shared/
+COPY packages/api/        ./packages/api/
+
+# Secuencia de compilación en un único RUN para minimizar layers:
+# 1. Compila @alentapp/shared → packages/shared/dist/
+#    (necesario antes de compilar la API: packages/api resuelve @alentapp/shared
+#     a través del symlink de workspace → packages/shared/dist/index.js)
+# 2. Genera el Prisma Client en packages/api/src/generated/client/
+#    (usa DATABASE_URL vacía; en build solo se genera el tipo, no se conecta)
+# 3. Compila la API con tsc → packages/api/dist/
+# 4. Copia los archivos JS runtime del Prisma Client al directorio dist/
+#    (Prisma genera .js pre-compilados que tsc no copia automáticamente)
+RUN npm run build -w packages/shared \
+    && DATABASE_URL="postgresql://x:x@localhost/x" \
+       npx prisma generate --config packages/api/prisma.config.ts \
+    && npm run build -w packages/api \
+    && cp -r packages/api/src/generated packages/api/dist/
+
+# -----------------------------------------------------------------------------
+# Stage 3 — runtime
+# Imagen final minimalista: solo JS compilado + node_modules de producción.
+# Sin código fuente, sin devDependencies, sin herramientas de compilación.
+# -----------------------------------------------------------------------------
+FROM node:22-alpine AS runtime
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Usa el usuario 'node' no-root nativo de la imagen node:alpine.
+# Creamos los directorios antes de cambiar el usuario para asignar permisos.
+RUN mkdir -p packages/api packages/shared \
+    && chown -R node:node /app
+
+USER node
+
+# --- Dependencias de producción (desde Stage 1) ---
+COPY --chown=node:node --from=deps /app/node_modules/      ./node_modules/
+
+# --- Artefactos compilados y ficheros de runtime (desde Stage 2) ---
+# package.json raíz: necesario para que Node.js resuelva el monorepo
+COPY --chown=node:node --from=build /app/package.json                              ./
+# Shared compilado: node_modules/@alentapp/shared (symlink) apunta aquí
+COPY --chown=node:node --from=build /app/packages/shared/dist/                     ./packages/shared/dist/
+COPY --chown=node:node --from=build /app/packages/shared/package.json              ./packages/shared/
+# API compilada
+COPY --chown=node:node --from=build /app/packages/api/dist/                        ./packages/api/dist/
+COPY --chown=node:node --from=build /app/packages/api/package.json                 ./packages/api/
+# Schema y migraciones de Prisma: requeridos para 'prisma migrate deploy' en startup
+COPY --chown=node:node --from=build /app/packages/api/prisma/                      ./packages/api/prisma/
+COPY --chown=node:node --from=build /app/packages/api/prisma.config.ts  ./packages/api/
+
+EXPOSE 3000
+
+# Comprueba la disponibilidad del servidor cada 30s.
+# --start-period=15s da margen para que la API inicialice la conexión a la DB.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD wget -qO- http://localhost:3000/health || exit 1
+
+# El comando default solo arranca el servidor.
+# docker-compose.prod.yml sobreescribe este CMD para ejecutar primero
+# 'prisma migrate deploy' antes de iniciar la aplicación.
+CMD ["node", "packages/api/dist/app.js"]

@@ -14,11 +14,7 @@ export class CreateLocker {
         await this.lockerValidator.validateNumeroIsUnique(data.numero);
 
         // 2. Persistencia a través de la interfaz
-        const nuevoLocker = await this.lockerRepository.create({
-            ...data,
-            estado: 'Disponible', // Todos nacen disponibles
-            member_id: null,      // Nacen sin socio asignado
-        });
+        const nuevoLocker = await this.lockerRepository.create(data);
 
         return nuevoLocker;
     }

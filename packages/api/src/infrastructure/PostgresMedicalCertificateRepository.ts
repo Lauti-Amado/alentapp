@@ -76,7 +76,7 @@ export class PostgresMedicalCertificateRepository implements MedicalCertificateR
             id: medicalCertificate.id,
             fecha_emision: medicalCertificate.fecha_emision.toISOString(),
             fecha_vencimiento: medicalCertificate.fecha_vencimiento.toISOString(),
-            esta_validada: medicalCertificate.esta_validada,
+            esta_validada: !!medicalCertificate.esta_validada,
             licencia_doctor: medicalCertificate.licencia_doctor,
             member_id: medicalCertificate.member_id,
         };
