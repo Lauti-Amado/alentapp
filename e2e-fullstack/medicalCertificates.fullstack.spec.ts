@@ -32,7 +32,7 @@ test.describe('Medical Certificates Full-Stack E2E', () => {
         const res = await request.get(`${API_URL}/api/v1/socios/dni/${ SEED_MEMBER.dni}`);
         if (res.ok()) {
             const { data } = await res.json();
-            await request.delete(`${API_URL}'/api/v1/socios/'${data.id}`);
+            await request.delete(`${API_URL}/api/v1/socios/${data.id}`);
         }
     });
 
