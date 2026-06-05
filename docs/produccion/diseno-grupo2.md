@@ -125,67 +125,59 @@ HEALTHCHECK \--interval=30s \--timeout=3s \--start-period=5s \--retries=3 \\
 ### **c) `docker-compose.prod.yml`**
 
 **Propósito:**  
-El archivo `docker-compose.prod.yml` tendrá como objetivo orquestar los servicios de la aplicación en un entorno de producción, garantizando una configuración consistente, segura y fácilmente reproducible. Permitirá coordinar la ejecución de la API, el frontend y la base de datos, aplicando políticas de seguridad, límites de recursos y mecanismos de verificación de estado para cada servicio.
+ Orquestar los tres servicios de la aplicación (`api`, `web`, `db`) en modo producción, aplicando todas las políticas de seguridad, límites de recursos, observabilidad y resiliencia exigidas.
 
-**Estructura:**  
-La configuración estará organizada en tres secciones principales:
+**Diseño de Servicios:**
 
-- **Servicios (`services`)**: Se definirán los siguientes servicios:
-   - **`api`**: Backend Node.js ejecutado mediante la imagen construida a partir de `packages/api/Dockerfile.prod`.
-   - **`web`**: Frontend servido mediante Nginx utilizando la imagen generada desde `packages/web/Dockerfile.prod`.
-   - **`db`**: Base de datos PostgreSQL con persistencia de datos mediante volúmenes.
-   - *Nota:* La API dependerá de la disponibilidad de la base de datos mediante `depends_on` con condición de `service_healthy`, para evitar intentos de conexión prematuros durante el arranque.
-
-- **Redes (`networks`)**: Se utilizará una red personalizada denominada `alentapp-prod-net` con driver `bridge`. Esta red permitirá:
-   - Aislar la comunicación interna entre servicios.
-   - Evitar el uso de la red `bridge` por defecto de Docker.
-   - Exponer únicamente los puertos necesarios al exterior.
-
-- **Volúmenes (`volumes`)**: Se definirá un volumen persistente (`postgres_data`) para PostgreSQL con el objetivo de conservar los datos ante reinicios o recreaciones de contenedores.
-
-**Requisitos no funcionales:**
-
-- **Seguridad:** Todos los servicios deberán ejecutarse siguiendo el principio de mínimo privilegio:
-  - Filesystem de solo lectura mediante `read_only: true` (cuando sea posible, usando `tmpfs` para directorios temporales).
-  - Eliminación de capacidades innecesarias mediante `cap_drop: ALL`.
-  - Incorporación exclusiva de capacidades requeridas mediante `cap_add: NET_BIND_SERVICE`.
-  - Restricción de escalamiento de privilegios mediante `security_opt: no-new-privileges:true`.
-  - Variables sensibles cargadas desde archivos de entorno, evitando credenciales hardcodeadas.
-
-- **Healthchecks:** Los servicios críticos contarán con mecanismos de verificación de estado para detectar fallos de forma temprana y facilitar la recuperación del sistema:
-  - **API:** Verificación del endpoint `/health`.
-  - **Base de datos:** Validación mediante el comando `pg_isready`.
-  - **Frontend:** Verificación de disponibilidad del servidor Nginx (puerto 80).
-
-- **Resource limits:** Cada servicio contará con límites de CPU y memoria para evitar consumos excesivos que puedan afectar la estabilidad del entorno:
-
-    | Servicio | CPU | Memoria |
-    | :--- | :--- | :--- |
-    | **API** | 0.50 | 512 MB |
-    | **Web** | 0.25 | 128 MB |
-    | **Base de Datos** | 1.00 | 512 MB |
-
-- **Logging:** Se utilizará el driver `json-file` con rotación configurada para evitar el crecimiento indefinido de los archivos de log:
-  - `max-size: "10m"`
-  - `max-file: "3"`
-
-- **Gestión de configuración y secretos:**  
-Las variables sensibles no se almacenarán dentro del repositorio ni en el archivo Compose. La configuración se cargará mediante un archivo `.env.prod`, utilizando `.env.prod.example` como plantilla de referencia para los desarrolladores. Entre las variables esperadas se incluyen:
-  - Credenciales de PostgreSQL.
-  - URL de conexión a la base de datos.
-  - Secretos de autenticación (ej. JWT).
-  - Configuración específica del entorno de producción (`NODE_ENV=production`).
-
-**Resumen de configuración:**
+**Resumen de requisitos por aspecto:**
 
 | Aspecto | Requisito |
-| :--- | :--- |
-| **Resource limits** | CPU y memoria definidos por servicio. |
-| **Healthchecks** | Para API y DB (y Web). |
-| **Seguridad** | `read_only: true`, `cap_drop: ALL`, `cap_add: NET_BIND_SERVICE`, `no-new-privileges`. |
-| **Logging** | Driver `json-file` con rotación (`max-size: 10m`, `max-file: 3`). |
-| **Red** | Red interna personalizada (no la default bridge). |
-| **Secrets** | Variables sensibles desde archivo `.env.prod` (no hardcodeadas). |
+| ----- | ----- |
+| Resource limits | CPU y memoria definidos por servicio mediante `deploy.resources.limits` |
+| Healthchecks | Para `api` y `db` con condición `service_healthy` en `depends_on` |
+| Seguridad | `read_only: true`, `cap_drop: ALL`, `cap_add: NET_BIND_SERVICE`, `no-new-privileges` |
+| Logging | Driver `json-file` con rotación (`max-size: 10m`, `max-file: 3`) |
+| Red | Red interna personalizada `alentapp-network` (no la default bridge) |
+| Secrets | Variables sensibles desde archivo `.env` (no hardcodeadas en el YAML) |
+
+**Servicio `api`:**
+
+* Imagen: compilada desde `packages/api/Dockerfile.prod` con contexto raíz del monorepo.  
+* Puertos: `3000:3000` para la API, `9464:9464` para el endpoint de métricas de OpenTelemetry.  
+* Volúmenes: ninguno (filesystem inmutable; se usa `tmpfs` para carpetas temporales necesarias como `/tmp`).  
+* Dependencias: `depends_on` con condición `service_healthy` hacia el servicio `db`.  
+* Restart policy: `unless-stopped`.  
+* Healthcheck: `wget -qO- http://127.0.0.1:3000/health || exit 1`.  
+* Límites de recursos: CPU máx. `0.5`, Memoria máx. `256M`.  
+* Seguridad: `read_only: true`, `cap_drop: [ALL]`, `cap_add: [NET_BIND_SERVICE]`, `security_opt: [no-new-privileges:true]`.  
+* Variables de entorno: `DATABASE_URL` y otras sensibles leídas desde `.env` mediante `env_file`.
+
+**Servicio `web`:**
+
+* Imagen: compilada desde `packages/web/Dockerfile.prod` con contexto raíz.  
+* Puertos: `80:80`.  
+* Dependencias: `depends_on` hacia `api`.  
+* Restart policy: `unless-stopped`.  
+* Healthcheck: `wget -qO- http://127.0.0.1:80 || exit 1`.  
+* Límites de recursos: CPU máx. `0.25`, Memoria máx. `64M`.  
+* Seguridad: `read_only: true`, `cap_drop: [ALL]`, `cap_add: [NET_BIND_SERVICE, CHOWN, SETUID, SETGID]`, `security_opt: [no-new-privileges:true]`. Se agrega `tmpfs` en `/var/cache/nginx` y `/var/run` para que Nginx pueda operar en modo read-only.
+
+**Servicio `db`:**
+
+* Imagen: `postgres:16-alpine` (misma versión usada en desarrollo para evitar incompatibilidades).  
+* Puertos: solo expuesto en la red interna `alentapp-network`, en puerto `5432` (no expuesto al host en producción).  
+* Volúmenes: volumen nombrado `pg_data_prod` para persistencia en `/var/lib/postgresql/data`.  
+* Healthcheck: `pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}` con interval `10s`, timeout `5s`, retries `5`.  
+* Restart policy: `unless-stopped`.  
+* Límites de recursos: CPU máx. `0.5`, Memoria máx. `512M`.
+
+**Políticas globales:**
+
+* **Red custom:** `alentapp-network` de tipo `bridge`, sin usar la red default de Docker Compose.  
+* **Logging con rotación:** Driver `json-file` con `max-size: "10m"` y `max-file: "3"` aplicado a todos los servicios mediante un anchor YAML `x-logging`.  
+* **Filesystem inmutable:** `read_only: true` en `api` y `web`, con `tmpfs` para los paths que requieren escritura transitoria.  
+* **Capabilities mínimas:** `cap_drop: [ALL]` y `cap_add: [NET_BIND_SERVICE]` en todos los contenedores. `security_opt: [no-new-privileges:true]` para prevenir escalada de privilegios.  
+* **Variables sensibles:** Todas las credenciales (usuario/contraseña de PostgreSQL, `DATABASE_URL`) provienen de un archivo `.env` que no se comitea al repositorio (listado en `.gitignore`).
 
 ---
 
