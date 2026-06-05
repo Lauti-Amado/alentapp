@@ -62,3 +62,62 @@ HEALTHCHECK \--interval=30s \--timeout=5s \--start-period=15s \--retries=3 \\
  El `.dockerignore` raíz debe excluir explícitamente: `node_modules/`, `.git/`, `dist/`, `e2e-fullstack/`, `**/*.test.ts`, `**/*.spec.ts`, `.env*`, `docs/`, y archivos de configuración de desarrollo (`.eslintrc.js`, `.prettierrc.json`). Esto evita sobrescrituras de caché y fugas de información sensible.
 
 ---
+
+### **b) `packages/web/Dockerfile.prod`**
+
+**Propósito:**  
+ Generar los artefactos estáticos (HTML, CSS, JS) de la aplicación React (Vite \+ Chakra UI) y servirlos de forma altamente eficiente mediante Nginx como servidor web ligero.
+
+**Justificación técnica:**  
+ Node.js no está diseñado para servir archivos estáticos con alta concurrencia. Nginx en modo servidor web procesa peticiones de recursos estáticos de forma asíncrona mediante su arquitectura basada en eventos, consumiendo una fracción mínima de RAM comparado con mantener un proceso Node.js activo.
+
+**Diseño de Etapas (Multi-stage):**
+
+| Etapa | Nombre | Base | Propósito |
+| ----- | ----- | ----- | ----- |
+| Stage 1 | `deps` | `node:22-alpine` | Instalar dependencias (`npm ci`) |
+| Stage 2 | `build` | `node:22-alpine` | Build de Vite (`npm run build`) |
+| Stage 3 | `runtime` | `nginx:stable-alpine` | Servir archivos estáticos con Nginx |
+
+**Detalle de cada etapa:**
+
+**Stage 1 — `deps` (Dependencias)**
+
+* Imagen base: `node:22-alpine`.  
+* Copia aislada de `package*.json` para aprovechar caché de Docker.  
+* Ejecución de `npm ci` para instalar todas las dependencias necesarias para el build de Vite.
+
+**Stage 2 — `build` (Construcción)**
+
+* Imagen base: `node:22-alpine`.  
+* Se copian los `node_modules` del Stage 1 y luego el código fuente de `packages/web/`.  
+* Ejecución de `npm run build` mediante Vite, generando el directorio `dist/` con el bundle protegido y minificado con hashes en los nombres de archivo.
+
+**Stage 3 — `runtime` (Nginx)**
+
+* Imagen base: `nginx:stable-alpine`.  
+* Los archivos del `dist/` del Stage 2 se copian hacia `/usr/share/nginx/html`.  
+* Se sobrescribe `/etc/nginx/nginx.conf` con una configuración personalizada.
+
+**Configuraciones específicas de Nginx:**
+
+* **SPA routing:** Directiva `try_files $uri $uri/ /index.html` para redirigir todo el tráfico de rutas inexistentes a `index.html`, habilitando el comportamiento de React Router.  
+* **Gzip:** Habilitado para `text/css`, `application/javascript`, `image/svg+xml` y `application/json`, reduciendo el ancho de banda.  
+* **Caché de assets:** Directiva `Cache-Control: max-age=31536000, immutable` aplicada a todos los assets con hash (`.js`, `.css`) generados por Vite.  
+* **Security Headers:** `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`.
+
+**Requisitos funcionales:**
+
+* Redirigir todo el tráfico de rutas inexistentes a `index.html` (comportamiento SPA).  
+* Exponer puerto `80`.
+
+**Requisitos no funcionales:**
+
+* Tamaño objetivo de imagen: \< 170 MB.
+
+**Estrategia de Healthcheck:**
+
+HEALTHCHECK \--interval=30s \--timeout=3s \--start-period=5s \--retries=3 \\  
+  CMD wget -qO- http://localhost:80 || exit 1
+
+---
