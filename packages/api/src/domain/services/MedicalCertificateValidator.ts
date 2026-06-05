@@ -1,7 +1,7 @@
 import { MemberRepository } from '../MemberRepository.js';
 import { MedicalCertificateRepository } from '../MedicalCertificateRepository.js';
 import { isAfter } from 'date-fns';
-import { UpdateMedicalCertificateRequest } from '../../../../shared/index.js';
+import { UpdateMedicalCertificateRequest } from '@alentapp/shared';
 
 export class MedicalCertificateValidator {
     constructor(

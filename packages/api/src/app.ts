@@ -195,11 +195,17 @@ export function buildApp() {
         rep.status(200).send({ msg: 'asd' })
     });
 
+    // Endpoint de salud para HEALTHCHECK del contenedor Docker
+    server.get('/health', async (_req, rep) => {
+        rep.status(200).send({ status: 'ok' });
+    });
+
     return server;
 }
 
 // Solo iniciar el servidor si el script se ejecuta directamente (no cuando es importado por vitest)
-if (process.argv[1] && process.argv[1].endsWith('app.ts')) {
+// Soporta tanto tsx (dev, .ts) como node (prod, .js compilado)
+if (process.argv[1] && (process.argv[1].endsWith('app.ts') || process.argv[1].endsWith('app.js'))) {
     const server = buildApp();
     const port = parseInt(process.env.PORT || '3000', 10);
 

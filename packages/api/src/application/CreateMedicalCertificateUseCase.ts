@@ -27,7 +27,7 @@ export class CreateMedicalCertificateUseCase {
         }
 
         // 3. Invalida el ultimo certificado médico del socio
-        await this.medicalCertificateRepository.darDeBajaCertificadoPorSocio(data.member_id, data.fecha_vencimiento)
+        await this.medicalCertificateRepository.darDeBajaCertificadoPorSocio(data.member_id, new Date(data.fecha_vencimiento))
 
         // 4. Persistir
         return this.medicalCertificateRepository.create(data);

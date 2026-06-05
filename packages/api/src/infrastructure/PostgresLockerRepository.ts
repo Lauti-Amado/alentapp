@@ -1,8 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/client/client.js';
 import { LockerRepository } from '../domain/LockerRepository.js';
-import { LockerDTO, CreateLockerRequest, LockerStatus } from '@alentapp/shared';
-import { UpdateLockerRequest } from '../../../shared/index.js';
+import { LockerDTO, CreateLockerRequest, LockerStatus, UpdateLockerRequest } from '@alentapp/shared';
 
 if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL environment variable is not set');
