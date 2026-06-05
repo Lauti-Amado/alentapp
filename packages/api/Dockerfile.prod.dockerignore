@@ -1,0 +1,55 @@
+# =============================================================================
+# packages/api/Dockerfile.prod.dockerignore
+# Aplica cuando el build context es la raíz del monorepo (.).
+# Convención BuildKit: {Dockerfile}.dockerignore
+# =============================================================================
+
+# Control de versiones y entornos locales
+.git
+.gitignore
+.env
+.env.*
+!.env.test
+
+# Artefactos de compilación
+**/dist
+**/node_modules
+
+# Herramientas y reportes de testing
+coverage
+test-results
+playwright-report*
+playwright-report-fullstack
+e2e-fullstack
+e2e
+**/*.test.ts
+
+# Código fuente del frontend (no necesario para el build de la API)
+packages/web/src
+packages/web/e2e
+packages/web/test
+packages/web/public
+packages/web/index.html
+packages/web/nginx.conf
+packages/web/Dockerfile*
+packages/web/*.config.*
+packages/web/eslint.config.*
+packages/web/out.txt
+
+# Documentación
+docs
+README.md
+*.md
+
+# Logs y temporales
+*.log
+npm-debug.log*
+
+# Ficheros de CI/Docker que no son el Dockerfile actual
+docker-compose*.yml
+Dockerfile*
+!packages/api/Dockerfile.prod
+
+**/*.spec.ts
+.eslintrc.js
+.prettierrc.json
