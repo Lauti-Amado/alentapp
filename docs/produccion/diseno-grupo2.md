@@ -121,3 +121,68 @@ HEALTHCHECK \--interval=30s \--timeout=3s \--start-period=5s \--retries=3 \\
   CMD wget -qO- http://localhost:80 || exit 1
 
 ---
+
+### **c) `docker-compose.prod.yml`**
+
+**Propósito:**  
+El archivo `docker-compose.prod.yml` tendrá como objetivo orquestar los servicios de la aplicación en un entorno de producción, garantizando una configuración consistente, segura y fácilmente reproducible. Permitirá coordinar la ejecución de la API, el frontend y la base de datos, aplicando políticas de seguridad, límites de recursos y mecanismos de verificación de estado para cada servicio.
+
+**Estructura:**  
+La configuración estará organizada en tres secciones principales:
+
+- **Servicios (`services`)**: Se definirán los siguientes servicios:
+   - **`api`**: Backend Node.js ejecutado mediante la imagen construida a partir de `packages/api/Dockerfile.prod`.
+   - **`web`**: Frontend servido mediante Nginx utilizando la imagen generada desde `packages/web/Dockerfile.prod`.
+   - **`db`**: Base de datos PostgreSQL con persistencia de datos mediante volúmenes.
+   - *Nota:* La API dependerá de la disponibilidad de la base de datos mediante `depends_on` con condición de `service_healthy`, para evitar intentos de conexión prematuros durante el arranque.
+
+- **Redes (`networks`)**: Se utilizará una red personalizada denominada `alentapp-prod-net` con driver `bridge`. Esta red permitirá:
+   - Aislar la comunicación interna entre servicios.
+   - Evitar el uso de la red `bridge` por defecto de Docker.
+   - Exponer únicamente los puertos necesarios al exterior.
+
+- **Volúmenes (`volumes`)**: Se definirá un volumen persistente (`postgres_data`) para PostgreSQL con el objetivo de conservar los datos ante reinicios o recreaciones de contenedores.
+
+**Requisitos no funcionales:**
+
+- **Seguridad:** Todos los servicios deberán ejecutarse siguiendo el principio de mínimo privilegio:
+  - Filesystem de solo lectura mediante `read_only: true` (cuando sea posible, usando `tmpfs` para directorios temporales).
+  - Eliminación de capacidades innecesarias mediante `cap_drop: ALL`.
+  - Incorporación exclusiva de capacidades requeridas mediante `cap_add: NET_BIND_SERVICE`.
+  - Restricción de escalamiento de privilegios mediante `security_opt: no-new-privileges:true`.
+  - Variables sensibles cargadas desde archivos de entorno, evitando credenciales hardcodeadas.
+
+- **Healthchecks:** Los servicios críticos contarán con mecanismos de verificación de estado para detectar fallos de forma temprana y facilitar la recuperación del sistema:
+  - **API:** Verificación del endpoint `/health`.
+  - **Base de datos:** Validación mediante el comando `pg_isready`.
+  - **Frontend:** Verificación de disponibilidad del servidor Nginx (puerto 80).
+
+- **Resource limits:** Cada servicio contará con límites de CPU y memoria para evitar consumos excesivos que puedan afectar la estabilidad del entorno:
+
+    | Servicio | CPU | Memoria |
+    | :--- | :--- | :--- |
+    | **API** | 0.50 | 512 MB |
+    | **Web** | 0.25 | 128 MB |
+    | **Base de Datos** | 1.00 | 512 MB |
+
+- **Logging:** Se utilizará el driver `json-file` con rotación configurada para evitar el crecimiento indefinido de los archivos de log:
+  - `max-size: "10m"`
+  - `max-file: "3"`
+
+- **Gestión de configuración y secretos:**  
+Las variables sensibles no se almacenarán dentro del repositorio ni en el archivo Compose. La configuración se cargará mediante un archivo `.env.prod`, utilizando `.env.prod.example` como plantilla de referencia para los desarrolladores. Entre las variables esperadas se incluyen:
+  - Credenciales de PostgreSQL.
+  - URL de conexión a la base de datos.
+  - Secretos de autenticación (ej. JWT).
+  - Configuración específica del entorno de producción (`NODE_ENV=production`).
+
+**Resumen de configuración:**
+
+| Aspecto | Requisito |
+| :--- | :--- |
+| **Resource limits** | CPU y memoria definidos por servicio. |
+| **Healthchecks** | Para API y DB (y Web). |
+| **Seguridad** | `read_only: true`, `cap_drop: ALL`, `cap_add: NET_BIND_SERVICE`, `no-new-privileges`. |
+| **Logging** | Driver `json-file` con rotación (`max-size: 10m`, `max-file: 3`). |
+| **Red** | Red interna personalizada (no la default bridge). |
+| **Secrets** | Variables sensibles desde archivo `.env.prod` (no hardcodeadas). |
