@@ -186,3 +186,156 @@ Las variables sensibles no se almacenarán dentro del repositorio ni en el archi
 | **Logging** | Driver `json-file` con rotación (`max-size: 10m`, `max-file: 3`). |
 | **Red** | Red interna personalizada (no la default bridge). |
 | **Secrets** | Variables sensibles desde archivo `.env.prod` (no hardcodeadas). |
+
+---
+
+## **SECCIÓN 2.2: DISEÑO DE LA OBSERVABILIDAD**
+
+### **a) Métricas RED a capturar**
+
+Las siguientes métricas cubren los tres componentes del RED Method (Rate, Errors, Duration) más métricas de saturación:
+
+| Métrica | Tipo OpenTelemetry | Descripción | Labels |
+| ----- | ----- | ----- | ----- |
+| `http.requests.total` | Counter | Contador acumulativo de requests HTTP; usado para calcular la tasa (Rate) via `rate()` en PromQL  | `method`, `route`, `status` |
+| `http.requests.errors` | Counter | Total de requests que resultaron en error (4xx/5xx) | `method`, `route`, `status` |
+| `http.request.duration` | Histogram | Distribución de latencia por request (en ms) | `method`, `route` |
+| `process.memory.usage` | Gauge | Memoria RAM asignada al proceso Node.js | — |
+| `http.requests.active` | Gauge | Requests en procesamiento simultáneo (in-flight) | `method` |
+
+**Relación con el RED Method:**
+
+* **Rate:** `http.requests.total` permite calcular la tasa de peticiones por segundo.  
+* **Errors:** `http.requests.errors` (o la misma `http.requests.total` filtrada por `status=~"[45].."`) permite calcular la tasa de error.  
+* **Duration:** `http.request.duration` permite medir valores de corte de latencia (p95, p99) con `histogram_quantile`.  
+* **Saturación (adicional):** `process.memory.usage` y `http.requests.active` detectan cuellos de botella y posibles memory leaks.
+
+---
+
+### **b) OpenTelemetry SDK**
+
+**Arquitectura de integración:**
+
+La integración se realiza en el servicio `api` (Fastify/TypeScript), siguiendo el orden requerido:
+
+1. `packages/api/src/infrastructure/telemetry.ts` — configura el SDK y el PrometheusExporter.  
+2. `packages/api/src/app.ts` — importa `telemetry.ts` como primer import (antes de Fastify y cualquier otra dependencia).  
+3. Los controllers instrumentan manualmente las métricas RED en cada handler.
+
+**Configuración conceptual del SDK:**
+
+// packages/api/src/infrastructure/telemetry.ts
+
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import { metrics } from '@opentelemetry/api';
+import type { Meter } from '@opentelemetry/api';
+
+// Configurar Prometheus Exporter
+const prometheusExporter = new PrometheusExporter({
+  port: 9464,
+  endpoint: '/metrics',
+});
+
+// Crear SDK con auto-instrumentaciones
+const sdk = new NodeSDK({
+  metricReader: prometheusExporter,
+  instrumentations: [
+    getNodeAutoInstrumentations(),
+  ],
+});
+
+// Iniciar SDK
+sdk.start();
+
+// Métricas personalizadas RED
+const meter = metrics.getMeter('alentapp-api');
+
+export function createREDMetrics(meter: Meter) {
+  const requestCounter = meter.createCounter('http.requests.total', {
+    description: 'Contador acumulativo de requests HTTP; usado para calcular la tasa (Rate) via rate() en PromQL',
+  });
+  const errorCounter = meter.createCounter('http.requests.errors', {
+    description: 'Total de errores HTTP (4xx/5xx)',
+  });
+  const requestDuration = meter.createHistogram('http.request.duration', {
+    description: 'Duración de requests en ms',
+    unit: 'ms',
+  });
+  return { requestCounter, errorCounter, requestDuration };
+}
+
+export { sdk, meter };
+
+**Inicialización en el entrypoint (`app.ts`):**
+
+// PRIMERO: inicializar OpenTelemetry antes de cualquier otro import  
+import './infrastructure/telemetry.js';
+
+// Luego el resto de imports  
+import Fastify from 'fastify';  
+// ...
+
+**Instrumentación manual en controllers (ejemplo `MemberController.ts`):**
+
+import { metrics } from '@opentelemetry/api';
+
+const meter \= metrics.getMeter('alentapp-api');  
+const requestCounter \= meter.createCounter('http.requests.total');  
+const errorCounter \= meter.createCounter('http.requests.errors');  
+const requestDuration \= meter.createHistogram('http.request.duration', { unit: 'ms' });
+
+async getAll(request, reply) {  
+  const start \= Date.now();  
+  const method \= request.method;  
+  const route \= request.url.split('?')\[0\];  
+  try {  
+    const members \= await this.getMembersUseCase.execute();  
+    requestCounter.add(1, { method, route, status: '200' });  
+    return reply.status(200).send({ data: members });  
+  } catch (error) {  
+    errorCounter.add(1, { method, route, status: '500' });  
+    return reply.status(500).send({ error: 'Error interno' });  
+  } finally {  
+    requestDuration.record(Date.now() \- start, { method, route });  
+  }  
+}
+
+**Dependencias a instalar en `packages/api`:**
+
+npm \-w packages/api install \\  
+  @opentelemetry/sdk-node \\  
+  @opentelemetry/auto-instrumentations-node \\  
+  @opentelemetry/exporter-prometheus \\  
+  @opentelemetry/instrumentation-http \\  
+  @opentelemetry/instrumentation-fastify
+
+**Diagrama de flujo de métricas:**
+
+Petición HTTP  
+    │  
+    ▼  
+API (Node.js / Fastify)  
+    │  
+    ├── Auto-instrumentación OTel (HTTP, Fastify)  
+    │       └──▶ PrometheusExporter  
+    │  
+    └── Instrumentación manual RED (controllers)  
+            └──▶ PrometheusExporter  
+                        │  
+                        ▼  
+              http://api:9464/metrics  
+                        │  
+              ◄── scrape cada 15s ──  
+                        │  
+                   Prometheus  
+                        │  
+              ◄── PromQL query ──  
+                        │  
+                    Grafana
+
+**Endpoint de métricas:**  
+ `http://0.0.0.0:9464/metrics` — Prometheus realiza el pull (scrape) directamente de esta URL cada 15 segundos.
+
+---
