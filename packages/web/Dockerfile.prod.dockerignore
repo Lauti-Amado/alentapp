@@ -1,0 +1,45 @@
+# =============================================================================
+# packages/web/Dockerfile.prod.dockerignore
+# Aplica cuando el build context es la raíz del monorepo (.).
+# Convención BuildKit: {Dockerfile}.dockerignore
+# =============================================================================
+
+# Control de versiones y entornos locales
+.git
+.gitignore
+.env
+.env.*
+
+# Artefactos de compilación
+**/dist
+**/node_modules
+
+# Testing
+coverage
+test-results
+playwright-report*
+playwright-report-fullstack
+e2e-fullstack
+packages/web/e2e
+packages/web/test
+
+# Código fuente del backend (no necesario para el build del frontend)
+packages/api/src
+packages/api/prisma
+packages/api/Dockerfile*
+packages/api/*.config.*
+packages/api/tsconfig*
+
+# Documentación
+docs
+README.md
+*.md
+
+# Logs y temporales
+*.log
+npm-debug.log*
+
+# Ficheros de CI/Docker que no son el Dockerfile actual
+docker-compose*.yml
+Dockerfile*
+!packages/web/Dockerfile.prod

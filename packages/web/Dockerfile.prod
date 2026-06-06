@@ -1,0 +1,76 @@
+# =============================================================================
+# packages/web/Dockerfile.prod
+# Multi-stage build (3 etapas) para el frontend React/Vite servido con Nginx.
+# Build context esperado: raíz del monorepo (.)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Stage 1 — deps
+# Instala todas las dependencias npm (incluyendo devDeps como vite y tsc,
+# necesarios en el stage de build). No hay "solo producción" aquí porque
+# todos los paquetes son build-time para una app estática.
+# -----------------------------------------------------------------------------
+FROM node:22-alpine AS deps
+
+WORKDIR /app
+
+# Manifiestos primero para aprovechar la caché de capas Docker:
+# esta capa solo se invalida si cambian las dependencias, no el código fuente.
+COPY package.json package-lock.json ./
+COPY packages/web/package.json     ./packages/web/
+COPY packages/shared/package.json  ./packages/shared/
+
+RUN npm ci
+
+# -----------------------------------------------------------------------------
+# Stage 2 — build
+# Compila @alentapp/shared, luego genera el bundle de producción con Vite.
+# La URL de la API (VITE_API_URL) se inyecta en tiempo de compilación porque
+# Vite reemplaza las variables import.meta.env.VITE_* estáticamente en el bundle.
+# -----------------------------------------------------------------------------
+FROM node:22-alpine AS build
+
+WORKDIR /app
+
+# Recibe la URL pública de la API (accesible desde el navegador del cliente).
+# Se pasa como build arg en docker-compose.prod.yml.
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
+# Trae node_modules del stage anterior (evita reinstalar)
+COPY --from=deps /app/node_modules/ ./node_modules/
+
+# Copia manifiestos y código fuente
+COPY package.json ./
+COPY tsconfig.json ./
+COPY packages/shared/ ./packages/shared/
+COPY packages/web/    ./packages/web/
+
+# 1. Compila @alentapp/shared → packages/shared/dist/
+#    (requerido por el build del web: resuelve @alentapp/shared vía workspace symlink)
+# 2. Compila y empaqueta el frontend → packages/web/dist/
+#    (tsc -b valida tipos; vite build genera los assets optimizados)
+RUN npm run build -w packages/shared \
+    && cd packages/web && npx vite build
+
+# -----------------------------------------------------------------------------
+# Stage 3 — runtime
+# Imagen final con solo Nginx + assets estáticos. Sin Node.js.
+# Tamaño esperado < 30MB.
+# -----------------------------------------------------------------------------
+FROM nginx:stable-alpine AS runtime
+
+# Copia el bundle estático generado al directorio raíz de Nginx
+COPY --from=build /app/packages/web/dist/ /usr/share/nginx/html/
+
+# Reemplaza la configuración de Nginx con la personalizada:
+# gzip, caché de assets, security headers, SPA routing y soporte read-only.
+COPY packages/web/nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 80
+
+# Verifica que Nginx responde en el puerto 80.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget -qO- http://localhost:80 || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]
