@@ -20,3 +20,5 @@ test/test-report.json
 *.ntvs*
 *.njsproj
 *.sln
+
+.env.prod
