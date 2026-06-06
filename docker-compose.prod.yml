@@ -11,6 +11,8 @@
 #   - VITE_API_URL debe ser la URL pública de la API (accesible desde el navegador).
 # =============================================================================
 
+name: alentapp-prod
+
 services:
 
   # ---------------------------------------------------------------------------
