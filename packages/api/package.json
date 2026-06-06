@@ -5,6 +5,7 @@
     "main": "src/app.ts",
     "scripts": {
         "dev": "tsx watch src/app.ts",
+        "build": "tsc -p tsconfig.build.json",
         "test": "vitest",
         "coverage": "vitest run --coverage"
     },
