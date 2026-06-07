@@ -232,3 +232,128 @@ docker inspect --format='{{json .State.Health.Status}}' alentapp-db-prod
 ![Captura - healthchecks](./evidencias/servicioshealthy.png)
 
 ---
+
+## 4.3. Verificación de observabilidad
+
+Esta sección documenta la verificación del stack de observabilidad implementado mediante OpenTelemetry, Prometheus y Grafana. Para ejecutar las pruebas, el stack de producción debe estar levantado con:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+---
+
+### OpenTelemetry exporta métricas en :9464/metrics
+
+**Objetivo:** confirmar que OpenTelemetry está correctamente inicializado y expone las métricas RED en el endpoint `/metrics` del puerto `9464`.
+
+**Comando ejecutado:**
+
+```bash
+curl http://localhost:9464/metrics | grep -E "http_requests_total|http_request_duration"
+```
+
+**Resultado esperado:**
+
+- El endpoint debe responder con métricas en formato Prometheus.
+- Deben aparecer las métricas `http_requests_total` con labels `method`, `route` y `status`.
+- Deben aparecer las métricas `http_request_duration_bucket`, `http_request_duration_count` y `http_request_duration_sum` con los buckets de latencia.
+
+**Evidencia:**
+
+![Captura - OpenTelemetry exportando métricas](./evidencias/OpenTelemetry.png)
+
+---
+
+### Prometheus scrapea correctamente el endpoint OTLP
+
+**Objetivo:** confirmar que Prometheus está alcanzando el endpoint de métricas del puerto `9464` y recolectando datos correctamente.
+
+**Verificación:**
+
+Se accedió a `http://localhost:9090/targets` para visualizar el estado de los jobs configurados en `observability/prometheus/prometheus.yml`. El job `opentelemetry` apunta a `host.docker.internal:9464` y debe aparecer en estado **UP**. El job `alentapp-api` apunta a `host.docker.internal:3000` y aparece en estado de error ya que la API REST no expone un endpoint `/metrics`, siendo el puerto `9464` el único punto válido de scrape para métricas de OpenTelemetry.
+
+**Evidencia:**
+
+![Captura - Prometheus scrapeando el endpoint OTLP](./evidencias/Prometheus.png)
+
+---
+
+### Grafana tiene al menos un datasource Prometheus configurado
+
+**Objetivo:** confirmar que Grafana tiene el datasource de Prometheus correctamente configurado, apuntando al servicio interno `http://prometheus:9090`.
+
+**Verificación:**
+
+El datasource se configura automáticamente al levantar el contenedor de Grafana gracias al archivo `observability/grafana/provisioning/datasources/datasource.yml`. Se accedió a `http://localhost:3001/connections/datasources` para verificar que el datasource **Prometheus** aparece como activo y marcado como predeterminado.
+
+**Evidencia:**
+
+![Captura - Datasource Prometheus en Grafana](./evidencias/Prometheus-Grafana.png)
+
+---
+
+### El dashboard RED tiene 6 paneles funcionales y los gráficos responden al tráfico generado
+
+**Objetivo:** confirmar que el dashboard **"RED — Alentapp API"** está disponible en Grafana con los 6 paneles definidos en la Fase 2, y que los gráficos muestran datos reales en respuesta al tráfico generado.
+
+**Verificación:**
+
+El dashboard se carga automáticamente desde `observability/grafana/provisioning/dashboards/red_dashboard.json` mediante provisioning por código. Para generar tráfico y poblar los paneles se ejecutó el siguiente script:
+
+```bash
+for i in {1..100}; do
+  curl -s http://localhost:3000/api/v1/socios > /dev/null
+  curl -s http://localhost:3000/api/v1/sports > /dev/null
+  curl -s http://localhost:3000/api/v1/lockers > /dev/null
+  sleep 0.05
+done
+```
+
+Luego de esperar el intervalo de scrape de Prometheus (15 segundos), los paneles comenzaron a mostrar datos. Los 6 paneles funcionales son:
+
+- **Panel 1:** Requests por segundo (Rate)
+- **Panel 2:** Tasa de error (5xx)
+- **Panel 3:** Latencia API (p95 / p99)
+- **Panel 4:** Por status code
+- **Panel 5:** Node.js Memory Usage
+- **Panel 6:** Endpoints más lentos (Top 5)
+
+**Evidencia:**
+
+![Captura - Dashboard RED paneles 1 a 3](./evidencias/GrafanaP1.png)
+
+![Captura - Dashboard RED paneles 4 a 6](./evidencias/GrafanaP2.png)
+
+---
+
+### Las métricas de error reflejan los 4xx/5xx
+
+**Objetivo:** confirmar que los errores de cliente (4xx) y de servidor (5xx) se registran correctamente en las métricas y se reflejan en el dashboard.
+
+**Verificación:**
+
+Para generar errores 4xx se ejecutaron requests con datos inválidos y a recursos inexistentes:
+
+```bash
+curl -s -X POST http://localhost:3000/api/v1/socios \
+  -H "Content-Type: application/json" \
+  -d '{"dni": ""}'
+
+curl -s http://localhost:3000/api/v1/socios/dni/00000000
+```
+
+Para generar errores 5xx se detuvo temporalmente el servicio de base de datos mientras la API seguía recibiendo requests:
+
+```bash
+docker stop alentapp-db-prod
+curl -s http://localhost:3000/api/v1/socios
+curl -s http://localhost:3000/api/v1/lockers
+docker start alentapp-db-prod
+```
+
+Los controllers registran cada error con su status correspondiente en el `requestCounter` y en el `errorCounter`, lo que permite que el panel 4 (Por status code) muestre la distribución completa de respuestas y el panel 2 (Tasa de error) refleje los 5xx como porcentaje del total de requests.
+
+**Evidencia:**
+
+![Captura - Métricas de error 4xx y 5xx en Grafana](./evidencias/Errores-4xx-5xx.png)
