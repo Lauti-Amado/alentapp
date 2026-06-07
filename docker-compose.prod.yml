@@ -118,6 +118,8 @@ services:
       - NET_BIND_SERVICE  # Permite binding a puertos (necesario en algunos entornos)
     security_opt:
       - no-new-privileges:true  # Impide escalada de privilegios vía setuid/setgid
+    sysctls:
+      net.ipv4.ping_group_range: "1 0"
 
     # /tmp necesita ser escribible (Node.js y algunos módulos escriben aquí temporalmente)
     tmpfs:
@@ -178,6 +180,8 @@ services:
       - SETGID            # fork workers como nginx group
     security_opt:
       - no-new-privileges:true
+    sysctls:
+      net.ipv4.ping_group_range: "1 0"
 
     # Nginx requiere estos directorios escribibles en runtime.
     # Se montan como tmpfs (en memoria) para compatibilidad con read_only: true.

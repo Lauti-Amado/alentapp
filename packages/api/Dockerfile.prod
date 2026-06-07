@@ -82,8 +82,9 @@ ENV NODE_ENV=production
 # Usa el usuario 'node' no-root nativo de la imagen node:alpine.
 # Creamos los directorios antes de cambiar el usuario para asignar permisos.
 RUN mkdir -p packages/api packages/shared \
+    && rm -rf /usr/local/lib/node_modules/npm \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
     && chown -R node:node /app
-
 USER node
 
 # --- Dependencias de producción (desde Stage 1) ---
