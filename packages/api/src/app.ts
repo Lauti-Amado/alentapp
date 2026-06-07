@@ -1,4 +1,4 @@
-import './infrastructure/telemetry.js';
+import { meter, createREDMetrics } from './infrastructure/telemetry.js';
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
@@ -59,6 +59,9 @@ export function buildApp() {
         },
     });
 
+    // Inicializamos las métricas RED llamando a tu función
+    const { requestCounter, errorCounter, requestDuration } = createREDMetrics(meter);
+
     server.register(cors, {
         origin: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -111,6 +114,19 @@ export function buildApp() {
     const updatePaymentUseCase = new UpdatePaymentUseCase(paymentRepo, paymentValidator);
     const softDeletePaymentUseCase = new SoftDeletePaymentUseCase(paymentRepo);
 
+    server.setErrorHandler((error: any, request, reply) => {
+    if (error.message.includes('inválido') || error.message.includes('no válido')) {
+        return reply.status(400).send({ error: error.message });
+    }
+    if (error.message.includes('no existe')) {
+        return reply.status(404).send({ error: error.message });
+    }
+    if (error.message.includes('Ya existe')) {
+        return reply.status(409).send({ error: error.message });
+    }
+    return reply.status(500).send({ error: 'Error interno, reintente más tarde' });
+});
+
     const memberController = new MemberController(
         createMemberUseCase, 
         getMembersUseCase,
@@ -133,7 +149,6 @@ export function buildApp() {
         deleteDisciplineUseCase
     );
 
-
     const medicalCertificateController = new MedicalCertificateController(
         createMedicalCertificateUseCase,
         getMedicalCertificatesUseCase,
@@ -147,8 +162,7 @@ export function buildApp() {
        getSportByNameUseCase,
        updateSportUseCase,
        deleteSportUseCase,
-);
-
+    );
 
     const paymentController = new PaymentController(
         createPaymentUseCase,
@@ -201,6 +215,24 @@ export function buildApp() {
     server.get('/health', async (_req, rep) => {
         rep.status(200).send({ status: 'ok' });
     });
+
+    // OBSERVABILIDAD: Hook global para métricas RED
+    server.addHook('onResponse', (request, reply, done) => {
+    const method = request.method;
+    const route = request.routeOptions?.url || request.url.split('?')[0];
+    const status = reply.statusCode.toString();
+
+    requestCounter.add(1, { method, route, status });
+
+    if (reply.statusCode >= 400) {
+        errorCounter.add(1, { method, route, status });
+    }
+
+    const duration = reply.elapsedTime;
+    requestDuration.record(duration, { method, route });
+
+    done();
+});
 
     return server;
 }
