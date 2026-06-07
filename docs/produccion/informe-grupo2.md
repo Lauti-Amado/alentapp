@@ -258,6 +258,7 @@ curl http://localhost:9464/metrics | grep -E "http_requests_total|http_request_d
 - El endpoint debe responder con métricas en formato Prometheus.
 - Deben aparecer las métricas `http_requests_total` con labels `method`, `route` y `status`.
 - Deben aparecer las métricas `http_request_duration_bucket`, `http_request_duration_count` y `http_request_duration_sum` con los buckets de latencia.
+- La duración se registra mediante reply `elapsedTime` nativo de Fastify, disponible en el hook `onResponse`.
 
 **Evidencia:**
 
@@ -313,7 +314,7 @@ done
 Luego de esperar el intervalo de scrape de Prometheus (15 segundos), los paneles comenzaron a mostrar datos. Los 6 paneles funcionales son:
 
 - **Panel 1:** Requests por segundo (Rate)
-- **Panel 2:** Tasa de error (5xx)
+- **Panel 2:** Tasa de error (4xx/5xx)
 - **Panel 3:** Latencia API (p95 / p99)
 - **Panel 4:** Por status code
 - **Panel 5:** Node.js Memory Usage
@@ -352,7 +353,7 @@ curl -s http://localhost:3000/api/v1/lockers
 docker start alentapp-db-prod
 ```
 
-Los controllers registran cada error con su status correspondiente en el `requestCounter` y en el `errorCounter`, lo que permite que el panel 4 (Por status code) muestre la distribución completa de respuestas y el panel 2 (Tasa de error) refleje los 5xx como porcentaje del total de requests.
+La lógica de registro de métricas se centralizó en un hook global `onResponse` en `app.ts`, que captura automáticamente el status code real de cada respuesta y lo registra en `requestCounter` y `errorCounter` sin necesidad de instrumentación manual en cada controller. Esto permite que el panel 4 (Por status code) muestre la distribución completa de respuestas y el panel 2 (Tasa de error) refleje los errores como porcentaje del total de requests.
 
 **Evidencia:**
 
