@@ -75,7 +75,7 @@
         "targets": [
           {
             "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
-            "expr": "process_memory_usage_bytes / 1024 / 1024",
+            "expr": "sum(v8js_memory_heap_used) / 1024 / 1024",
             "legendFormat": "MB"
           }
         ]
