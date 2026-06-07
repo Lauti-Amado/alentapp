@@ -64,3 +64,171 @@ La verificación técnica permitió comprobar que la configuración de producci�
 Además, los endpoints principales de la API se mantuvieron accesibles en producción y el frontend quedó correctamente servido mediante Nginx como contenido estático. Por lo tanto, la configuración resultante cumple con los objetivos técnicos de optimización y preparación para producción planteados.
 
 ---
+
+## 4.2. Verificación de seguridad
+
+Esta sección documenta la verificación de las medidas de seguridad aplicadas al entorno productivo de Alentapp. Para ejecutar las pruebas, se debe levantar primero el stack de produccion con el archivo `.env.prod` local:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+Las capturas de pantalla se guardan en `docs/produccion/evidencias/` y se referencian desde este documento con rutas relativas.
+
+### Resumen de controles
+
+| Control | Comando principal | Resultado esperado
+| --- | --- | --- |
+| API con usuario no-root | `docker exec alentapp-api-prod id` | El usuario no debe ser `root` ni tener UID `0`. | Pendiente de evidencia |
+| Imagen final sin herramientas no deseadas | `which npm`, `which tsc`, `which python` | Los comandos no deben devolver rutas disponibles en la imagen final. | Pendiente de evidencia |
+| Filesystem read-only | `touch /test` | La escritura debe fallar por sistema de archivos de solo lectura o permisos insuficientes. | Pendiente de evidencia |
+| Capabilities minimas | `ping`, `mount` | Las operaciones privilegiadas deben fallar. | Pendiente de evidencia |
+| Variables sensibles por `.env.prod` | `docker compose ... config` y `git check-ignore .env.prod` | Las variables se cargan desde `.env.prod` y el archivo queda ignorado por Git. | Pendiente de evidencia |
+| Healthchecks funcionando | `docker ps` | Los servicios deben mostrarse como `healthy`. | Pendiente de evidencia |
+
+---
+
+### 4.2.1. La API corre con usuario no-root
+
+**Objetivo:** confirmar que el proceso de la API se ejecuta con un usuario sin privilegios de root dentro del contenedor.
+
+**Comandos ejecutados:**
+
+```bash
+docker exec alentapp-api-prod id
+docker exec alentapp-api-prod whoami
+```
+
+**Resultado esperado:**
+
+- `whoami` debe devolver `node`.
+- `id` debe mostrar un UID distinto de `0`.
+- No debe aparecer `root` como usuario efectivo.
+
+**Evidencia fotográfica:**
+
+![Captura - usuario no-root](./evidencias/usernoroot.png)
+
+---
+
+### 4.2.2. No hay npm, tsc ni python en la imagen final
+
+**Objetivo:** verificar que la imagen final no incluya herramientas de desarrollo o compilación innecesarias para ejecutar la aplicación en producción.
+
+**Comandos ejecutados:**
+
+```bash
+docker exec alentapp-api-prod sh -c "which npm || true; which npx || true; which tsc || true; which python || true; which python3 || true"
+docker exec alentapp-web-prod sh -c "which node || true; which npm || true; which tsc || true; which python || true"
+```
+
+**Resultado esperado:**
+
+- En `api`, no deberian aparecer rutas para `npm`, `npx`, `tsc`, `python` ni `python3`.
+- En `web`, no deberian aparecer rutas para `node`, `npm`, `tsc` ni `python`, porque el runtime final es Nginx.
+- Si algun comando devuelve una ruta, se debe registrar como hallazgo y revisar la imagen final.
+
+
+**Evidencia fotografica:**  
+
+![Captura - herramientas ausentes](./evidencias/nonpmtscnipython.png)
+
+---
+
+### 4.2.3. Filesystem read-only activo
+
+**Objetivo:** confirmar que los contenedores productivos no permiten escritura en la raiz del filesystem.
+
+**Comandos ejecutados:**
+
+```bash
+docker exec alentapp-api-prod touch /test
+docker exec alentapp-web-prod touch /test
+```
+
+**Resultado esperado:**
+
+- Ambos comandos deben fallar.
+- El error esperado puede ser similar a `Read-only file system` o `Permission denied`.
+- La escritura transitoria solo debe estar disponible en los directorios declarados como `tmpfs`, por ejemplo `/tmp`.
+
+**Evidencia fotografica:**
+
+![Captura - filesystem read-only](./evidencias/noescriturafilesystem.png)
+
+---
+
+### 4.2.4. Capabilities minimas
+
+**Objetivo:** validar que los contenedores no tengan capacidades Linux innecesarias para operaciones privilegiadas.
+
+**Comandos ejecutados:**
+
+```bash
+docker exec alentapp-api-prod ping -c 1 8.8.8.8
+docker exec alentapp-web-prod ping -c 1 8.8.8.8
+docker exec alentapp-api-prod sh -c "mkdir -p /tmp/mnt && mount -t tmpfs tmpfs /tmp/mnt"
+docker exec alentapp-web-prod sh -c "mkdir -p /tmp/mnt && mount -t tmpfs tmpfs /tmp/mnt"
+```
+
+**Resultado esperado:**
+
+- `ping` debe fallar si no esta disponible o si el contenedor no tiene la capability necesaria.
+- `mount` no debe permitir montar nuevos filesystems ni realizar operaciones privilegiadas.
+- La configuracion esperada en `docker-compose.prod.yml` es `cap_drop: ALL`, las capabilities estrictamente necesarias en `cap_add` y `sysctls: net.ipv4.ping_group_range: "1 0"`.
+
+**Evidencia fotografica:**  
+
+![Captura - capabilities minimas](./evidencias/nopingnomount.png)
+
+---
+
+### 4.2.5. Variables sensibles via `.env.prod`, no hardcodeadas
+
+**Objetivo:** comprobar que las credenciales y variables sensibles no estan hardcodeadas en la configuracion versionada, sino que se cargan desde `.env.prod`.
+
+**Comandos ejecutados:**
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod config
+git check-ignore .env.prod
+```
+
+**Resultado esperado:**
+
+- `docker compose ... config` debe resolver las variables desde `.env.prod`.
+- `git check-ignore .env.prod` debe devolver `.env.prod`, confirmando que el archivo no se versiona.
+- Las credenciales reales no deben aparecer hardcodeadas en `docker-compose.prod.yml`.
+
+**Evidencia fotografica:**
+
+![Captura - variables sensibles](./evidencias/nohayhardcodeo.png)
+
+![Captura - variables sensibles](./evidencias/nohayhardcodeo2.png)
+
+---
+
+### 4.2.6. Healthchecks funcionando
+
+**Objetivo:** confirmar que Docker reporta los servicios principales como saludables.
+
+**Comandos ejecutados:**
+
+```bash
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+docker inspect --format='{{json .State.Health.Status}}' alentapp-api-prod
+docker inspect --format='{{json .State.Health.Status}}' alentapp-web-prod
+docker inspect --format='{{json .State.Health.Status}}' alentapp-db-prod
+```
+
+**Resultado esperado:**
+
+- `docker ps` debe mostrar `(healthy)` en los servicios con healthcheck.
+- Los comandos `docker inspect` deben devolver `"healthy"` para `api`, `web` y `db`.
+- Si algun servicio aparece como `starting` o `unhealthy`, esperar el `start_period` configurado y revisar logs si no se recupera.
+
+**Evidencia fotografica:**
+
+![Captura - healthchecks](./evidencias/servicioshealthy.png)
+
+---
