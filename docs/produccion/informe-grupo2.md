@@ -358,3 +358,225 @@ La lógica de registro de métricas se centralizó en un hook global `onResponse
 **Evidencia:**
 
 ![Captura - Métricas de error 4xx y 5xx en Grafana](./evidencias/Errores-4xx-5xx.png)
+
+# 4.4. Documentación de decisiones
+
+Este documento resume las decisiones de arquitectura, las razones técnicas detrás de cada decisión y los problemas que surgieron durante el camino.
+
+---
+
+## Arquitectura final
+
+El sistema en producción quedó conformado por cinco servicios orquestados mediante `docker-compose.prod.yml`, todos conectados a la red interna `alentapp-net`:
+
+
+| Servicio     | Imagen / build                 | Puerto (host)        | Rol                                                        |
+| ------------ | ------------------------------ | -------------------- | ---------------------------------------------------------- |
+| `web`        | `packages/web/Dockerfile.prod` | 80                   | SPA React compilada por Vite, servida por Nginx            |
+| `api`        | `packages/api/Dockerfile.prod` | 3000, 9464           | API Fastify + Prisma; métricas OpenTelemetry en `/metrics` |
+| `db`         | `postgres:16-alpine`           | *(solo red interna)* | Base de datos PostgreSQL                                   |
+| `prometheus` | `prom/prometheus:latest`       | 9090                 | Recolector de métricas                                     |
+| `grafana`    | `grafana/grafana:latest`       | 3001                 | Visualización del dashboard RED                            |
+
+
+**Flujo de tráfico:**
+
+1. El usuario accede al frontend vía Nginx (`http://localhost:80`).
+2. El bundle de Vite llama a la API usando `VITE_API_URL` (inyectada en build time).
+3. La API consulta PostgreSQL por la red interna (`db:5432`).
+4. OpenTelemetry expone métricas en el puerto `9464`; Prometheus las scrapea y Grafana las visualiza.
+
+**Archivos clave de la arquitectura:**
+
+- Orquestación: `docker-compose.prod.yml`
+- Variables de entorno: `.env.prod` (a partir de `.env.prod.example`)
+- Build API: `packages/api/Dockerfile.prod`
+- Build Web: `packages/web/Dockerfile.prod`
+- Telemetría: `packages/api/src/infrastructure/telemetry.ts`
+- Dashboard RED: `observability/grafana/provisioning/dashboards/red_dashboards.json`
+- Config Prometheus: `observability/prometheus/prometheus.yml`
+
+**Comando de despliegue:**
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+---
+
+## Decisiones técnicas
+
+### 1. Multi-stage builds para Docker
+
+**Decisión:** Separar la construcción de la API y el frontend en tres etapas (`deps`, `build`, `runtime`).
+
+**Por qué:**
+
+- **Seguridad:** La imagen final no contiene herramientas de compilación (`tsc`, `npm`, `npx`), reduciendo la superficie de ataque. En runtime se eliminan explícitamente los binarios de npm.
+- **Performance y costos:** Se redujo el tamaño de las imágenes (API: 427 MB → 194 MB; Web: 222 MB → 26 MB) y el tiempo de startup de la API (16 s → 2 s), según las mediciones del informe de verificación técnica.
+- **Separación de responsabilidades:** El stage `build` genera artefactos; el stage `runtime` solo copia `dist/`, `node_modules` de producción y los archivos de Prisma necesarios para migraciones.
+
+### 2. Nginx para el frontend en lugar de Node.js
+
+**Decisión:** Usar `nginx:stable-alpine` para servir el frontend en lugar de mantener un servidor Node.js corriendo `vite preview` o `npm run dev`.
+
+**Por qué:** Nginx está diseñado para servir archivos estáticos. Consume mucha menos memoria y CPU, maneja mejor las conexiones concurrentes y permitió configurar compresión `gzip`, cabeceras de seguridad, caché de assets con hash y routing SPA (`try_files` → `index.html`) en `packages/web/nginx.conf`.
+
+### 3. OpenTelemetry con Prometheus Exporter (en lugar de cliente nativo de Prometheus)
+
+**Decisión:** Instrumentar la API con el SDK de OpenTelemetry y exportar métricas mediante `PrometheusExporter` en el puerto `9464`, endpoint `/metrics`.
+
+**Por qué:**
+
+- OpenTelemetry es el estándar de la industria y es agnóstico al proveedor. Si en el futuro queremos enviar trazas o métricas a Datadog, Jaeger o New Relic, solo cambiamos el exporter sin tocar la lógica de negocio.
+- Las auto-instrumentaciones (`getNodeAutoInstrumentations`) aportan métricas base del runtime Node.js (por ejemplo, memoria heap).
+- Las métricas RED se instrumentan manualmente en cada controller (`http.requests.total`, `http.requests.errors`, `http.request.duration`) con labels `method`, `route` y `status`, siguiendo el diseño de `diseno-grupo2.md`.
+
+**Nota sobre nombres en Prometheus:** OpenTelemetry convierte los puntos de los nombres de métricas a guiones bajos al exportar. Por eso en Grafana las queries usan `http_requests_total` y no `http.requests.total`.
+
+### 4. Stack Prometheus + Grafana con provisioning
+
+**Decisión:** Agregar Prometheus y Grafana como servicios adicionales en `docker-compose.prod.yml`, con configuración declarativa (provisioning) para datasource y dashboard.
+
+**Por qué:**
+
+- Prometheus centraliza el scrapeo periódico (cada 15 segundos) y permite consultas PromQL (`rate()`, `histogram_quantile()`).
+- Grafana facilita la visualización del método RED sin construir una UI propia.
+- El dashboard `RED — Alentapp API` se versiona en JSON (`red_dashboards.json`) y se carga automáticamente al iniciar Grafana, evitando configuración manual repetitiva.
+
+### 5. `prisma migrate deploy` en el arranque de la API
+
+**Decisión:** Ejecutar migraciones pendientes con `prisma migrate deploy` antes de iniciar `node packages/api/dist/app.js`, escribiendo `DATABASE_URL` en `/tmp/.env` para que `prisma.config.ts` la lea.
+
+**Por qué:**
+
+- `prisma migrate dev` (usado en desarrollo) puede generar migraciones nuevas y no es seguro en producción.
+- `migrate deploy` solo aplica migraciones SQL ya versionadas en `packages/api/prisma/migrations/`.
+- El directorio `/tmp` es un `tmpfs` escribible, compatible con `read_only: true` del contenedor.
+
+### 6. Hardening de seguridad en Docker Compose
+
+**Decisión:** Aplicar `read_only: true`, `no-new-privileges:true`, `cap_drop: ALL`, `tmpfs` para directorios temporales y correr la API con el usuario `node` (no-root).
+
+**Por qué:**
+
+- Si un atacante explota una vulnerabilidad en la API, el filesystem de solo lectura impide escribir malware en el contenedor.
+- `no-new-privileges` evita escalada de privilegios vía `setuid`/`setgid`.
+- Dropear capabilities y dejar solo `NET_BIND_SERVICE` (y las mínimas de Nginx: `CHOWN`, `SETUID`, `SETGID`) limita lo que el kernel permite al proceso.
+- Los healthchecks, límites de CPU/memoria y rotación de logs (`json-file`, 10 MB × 3 archivos) completan la postura operativa de producción.
+
+### 7. Separación de perfiles: desarrollo vs producción
+
+**Decisión:** Mantener `docker-compose.yml` para desarrollo (bind mounts, hot-reload, `tsx watch`) y `docker-compose.prod.yml` para producción (imágenes inmutables, sin montaje de código fuente).
+
+**Por qué:** Mezclar ambos entornos en un solo archivo complica el mantenimiento y aumenta el riesgo de desplegar accidentalmente configuración de desarrollo en producción.
+
+---
+
+## Problemas encontrados
+
+### 1. Imposibilidad de correr desarrollo y producción en simultáneo
+
+Uno de los primeros obstáculos operativos fue que **no podíamos levantar el entorno de desarrollo y el de producción al mismo tiempo** para comparar comportamiento, revisar imágenes o validar el dashboard de Grafana mientras seguíamos desarrollando.
+
+Al inicio, ambos stacks compartían el mismo *project name* implícito de Docker Compose (derivado del nombre de la carpeta del proyecto). Eso hacía que contenedores, redes y volúmenes de un entorno **pisaran o reemplazaran** los del otro: al hacer `docker compose up` con `docker-compose.prod.yml`, se detenían o conflictuaban recursos que el `docker-compose.yml` de desarrollo ya tenía en uso, y viceversa. En la práctica, levantar producción podía tumbar `alentapp-api` mientras estábamos probando cosas, lo que dificultaba mucho validar la infraestructura nueva sin perder el entorno con el que veníamos trabajando.
+
+Además, varios servicios competían por los **mismos puertos del host** (`3000` para la API, `80` para el frontend, `5432` para PostgreSQL), y los `container_name` fijos (`alentapp-api` vs `alentapp-api-prod`) no alcanzaban para aislar completamente los stacks si el proyecto de Compose seguía siendo el mismo.
+
+**Cómo lo resolvimos:** asignamos un nombre de proyecto distinto a cada archivo Compose mediante la directiva `name` al inicio de cada docker-compose:
+
+- `docker-compose.yml` → `name: alentapp`
+- `docker-compose.prod.yml` → `name: alentapp-prod`
+
+Con eso Docker trata cada stack como un proyecto independiente: imágenes prefijadas (`alentapp-prod-api` vs `alentapp-api`), redes separadas (`alentapp-prod_alentapp-net` vs `alentapp_default`), volúmenes distintos y contenedores que ya no se borran mutuamente. Aun así, los puertos publicados siguen siendo un recurso exclusivo del host, por lo que para comparar ambos entornos en la misma máquina hubo que **bajar uno antes de levantar el otro**, o aceptar que solo uno podía estar activo en `localhost:3000` / `localhost:80` a la vez. Pese a esa limitación de puertos, el aislamiento por `name` fue lo que nos permitió trabajar con dos configuraciones sin que Docker destruya recursos del otro stack al hacer `down` o `up`.
+
+### 2. Poco tiempo para un trabajo de infraestructura completo
+
+El plazo para esta entrega fue de **aproximadamente cinco días**. Eso condicionó fuertemente cómo pudimos abordar el trabajo.
+
+No partíamos de cero en cuanto a aplicación: el código funcional en modo desarrollo ya existía (API con Fastify y Prisma, frontend con React/Vite, tests, `docker-compose.yml` con hot-reload). Lo que faltaba fue transformar ese stack orientado a desarrollo en una infraestructura de producción y observabilidad:
+
+- Dockerfiles multi-stage (`Dockerfile.prod` para API y Web)
+- `docker-compose.prod.yml` con hardening, healthchecks y límites de recursos
+- Separación de variables sensibles en `.env.prod`
+- Instrumentación OpenTelemetry y métricas RED en los controllers
+- Stack Prometheus + Grafana con provisioning de datasource y dashboard
+- Documentación de decisiones, verificación técnica y evidencias de seguridad
+
+En cinco días nos repartimos el tiempo entre nosotros para diseñar, implementar, probar en distintas máquinas del grupo, corregir errores de configuración y redactar el informe. Eso implicó priorizar lo exigible (stack prod funcional, dashboard RED, buenas prácticas de seguridad documentadas) por sobre retoques o mejoras que hubiéramos querido hacer con más tiempo en la entrega.
+
+### 3. Builds inconsistentes entre integrantes: `build --no-cache api`
+
+Durante las pruebas en las distintas notebooks del grupo, a uno de nosotros el proyecto no le funcionaba aunque el resto ya lo tenía levantado con la misma rama y el mismo `.env.prod`. La API fallaba al arrancar y no se podia probar nada ni verificar si los nuevos cambios rompian o era algun tema de docker o anterior.
+
+Tras varios intentos con `docker compose up --build`, el comando que finalmente lo destrabó fue:
+
+```bash
+docker compose -f docker-compose.prod.yml build --no-cache api
+```
+
+**Por qué pasaba:** Docker reutiliza capas cacheadas del build anterior. En un monorepo con multi-stage build, un cambio en `package-lock.json`, en el `Dockerfile.prod`, en el stage `deps` o en archivos que se copian tarde en el Dockerfile puede no invalidar todas las capas que deberían reconstruirse. Si una capa de `npm ci` o de compilación queda obsoleta pero Docker la considera vigente, la imagen resultante puede mezclar artefactos viejos con configuración nueva. Eso se notó especialmente cuando distintos integrantes fuimos construyendo la imagen de producción en momentos distintos.
+
+Forzar `--no-cache` obliga a reconstruir todas las etapas desde cero, garantizando que `deps`, `build` y `runtime` reflejen el estado actual del código.
+
+### 4. Panel de memoria en Grafana sin datos por una query incorrecta
+
+Una vez que el dashboard RED mostraba correctamente Rate, Errors y Duration, el panel **"Memoria del proceso"** seguía vacío o con error, aunque el resto de métricas HTTP funcionara.
+
+El problema estaba en la expresión PromQL de la línea 78 de `observability/grafana/provisioning/dashboards/red_dashboards.json`:
+
+```json
+"expr": "sum(v8js_memory_heap_used) / 1024 / 1024"
+```
+
+Esa query asumía que Prometheus recibía una métrica llamada `v8js_memory_heap_used`. En la práctica, **esa serie no existía** en nuestro endpoint `/metrics` (puerto `9464`), o no se exportaba con ese nombre. El diseño original del proyecto contemplaba una métrica `process.memory.usage` definida en OpenTelemetry, pero el dashboard se armó con un nombre tomado de otra convención (métricas automáticas de runtime V8/Node que no estaban disponibles o se exponían con otro identificador tras la conversión OTel → Prometheus).
+
+Mientras las queries de los paneles RED (`http_requests_total`, `http_request_duration_bucket`, etc.) sí coincidían con lo que exportaba la API, el panel de memoria quedó desalineado: Grafana cargaba el dashboard, Prometheus respondía, pero esa expresión puntual no matcheaba ninguna serie, y el gráfico mostraba "No data" de forma permanente.
+
+**Cómo lo abordamos:** revisar en `http://localhost:9464/metrics` los nombres reales de las métricas de memoria que exportan las auto-instrumentaciones de OpenTelemetry (por ejemplo, series relacionadas con `process` o `v8js` según la versión del SDK) y actualizar la línea 78 del JSON con la expresión que corresponda. Esto implicó entender que no alcanza con definir una métrica en el diseño: hay que validar el nombre efectivo en Prometheus después de la transformación del exporter, porque ahí es donde Grafana hace la consulta.
+
+---
+
+## Capturas de pantalla
+
+Las evidencias se guardan en `docs/produccion/evidencias/`. A continuación se documentan las capturas requeridas por la consigna.
+
+### Dashboard RED funcionando con datos
+
+Demostración de que el dashboard `RED — Alentapp API` en Grafana muestra métricas reales de Rate, Errors y Duration.
+
+**Pasos para reproducir:**
+
+1. Levantar el stack de producción:
+
+   ```bash
+   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+   ```
+
+2. Generar tráfico contra la API antes de capturar (por ejemplo, `curl http://localhost:3000/health` y los endpoints `/api/v1/socios`, `/api/v1/sports`, `/api/v1/lockers`).
+3. Abrir Grafana en `http://localhost:3001` (usuario: `admin`, contraseña: `admin`).
+4. Navegar al dashboard **RED — Alentapp API** y verificar que los paneles muestran datos:
+   - Requests por segundo
+   - Tasa de error (5xx)
+   - Latencia API (p95 / p99)
+   - Por status code
+   - Memoria del proceso
+   - Endpoints más lentos (Top 5)
+
+**Evidencias:**
+
+Paneles RED (Rate, Errors, Duration y status code): requests por segundo, tasa de error 5xx, latencia p95/p99 y distribución por código HTTP.
+
+![Captura - Dashboard RED paneles 1 a 4](./evidencias/GrafanaP1.png)
+
+Paneles de saturación: memoria del proceso y endpoints más lentos (Top 5).
+
+![Captura - Dashboard RED paneles 5 y 6](./evidencias/GrafanaP2.png)
+
+---
+
+## Conclusión
+
+La arquitectura final separa claramente build y runtime, sirve el frontend como estáticos con Nginx, ejecuta la API como proceso Node compilado con migraciones controladas y agrega observabilidad RED mediante OpenTelemetry → Prometheus → Grafana. Las decisiones priorizan seguridad (`read_only`, usuario no-root, capabilities mínimas), eficiencia (imágenes reducidas, startup rápido) y mantenibilidad (provisioning declarativo, perfiles dev/prod separados).
+
+Los problemas más relevantes no fueron solo técnicos del código, sino también de tiempo: el conflicto entre stacks de desarrollo y producción hasta aislar proyectos con `name`, la inconsistencia de builds entre integrantes (resuelta con `build --no-cache api`) y en cinco días para montar la infraestructura de producción con observabilidad incluida (utilizando nuevas herramientas para nosotros).
