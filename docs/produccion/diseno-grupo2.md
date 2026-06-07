@@ -192,15 +192,14 @@ Las siguientes métricas cubren los tres componentes del RED Method (Rate, Error
 | `http.requests.total` | Counter | Contador acumulativo de requests HTTP; usado para calcular la tasa (Rate) via `rate()` en PromQL  | `method`, `route`, `status` |
 | `http.requests.errors` | Counter | Total de requests que resultaron en error (4xx/5xx) | `method`, `route`, `status` |
 | `http.request.duration` | Histogram | Distribución de latencia por request (en ms) | `method`, `route` |
-| `process.memory.usage` | Gauge | Memoria RAM asignada al proceso Node.js | — |
-| `http.requests.active` | Gauge | Requests en procesamiento simultáneo (in-flight) | `method` |
+| `v8js.memory.heap.used` | Gauge | Memoria del heap de Node.js utilizada, desglosada por espacio | `v8js_heap_space_name` |
 
 **Relación con el RED Method:**
 
-* **Rate:** `http.requests.total` permite calcular la tasa de peticiones por segundo.  
-* **Errors:** `http.requests.errors` (o la misma `http.requests.total` filtrada por `status=~"[45].."`) permite calcular la tasa de error.  
-* **Duration:** `http.request.duration` permite medir valores de corte de latencia (p95, p99) con `histogram_quantile`.  
-* **Saturación (adicional):** `process.memory.usage` y `http.requests.active` detectan cuellos de botella y posibles memory leaks.
+* **Rate:** `http.requests.total` permite calcular la tasa de peticiones por segundo.
+* **Errors:** `http.requests.errors` permite calcular la tasa de error sobre el total de requests.
+* **Duration:** `http.request.duration` permite medir valores de corte de latencia (p95, p99) con `histogram_quantile`.
+* **Saturación (adicional):** `v8js.memory.heap.used` permite detectar posibles fugas de memoria del proceso Node.js.
 
 ---
 
@@ -208,29 +207,25 @@ Las siguientes métricas cubren los tres componentes del RED Method (Rate, Error
 
 **Arquitectura de integración:**
 
-La integración se realiza en el servicio `api` (Fastify/TypeScript), siguiendo el orden requerido:
+La integración se realiza en el servicio `api` (Fastify/TypeScript), siguiendo este orden:
 
-1. `packages/api/src/infrastructure/telemetry.ts` — configura el SDK y el PrometheusExporter.  
-2. `packages/api/src/app.ts` — importa `telemetry.ts` como primer import (antes de Fastify y cualquier otra dependencia).  
-3. Los controllers instrumentan manualmente las métricas RED en cada handler.
+1. `packages/api/src/infrastructure/telemetry.ts` — configura el SDK y el PrometheusExporter.
+2. `packages/api/src/app.ts` — importa `telemetry.ts` como primer import (antes de Fastify y cualquier otra dependencia), inicializa las métricas RED y registra un hook global `onResponse` que las captura automáticamente al finalizar cada request.
 
-**Configuración conceptual del SDK:**
+**Configuración del SDK (`telemetry.ts`):**
 
-// packages/api/src/infrastructure/telemetry.ts
-
+```typescript
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { metrics } from '@opentelemetry/api';
 import type { Meter } from '@opentelemetry/api';
 
-// Configurar Prometheus Exporter
 const prometheusExporter = new PrometheusExporter({
   port: 9464,
   endpoint: '/metrics',
 });
 
-// Crear SDK con auto-instrumentaciones
 const sdk = new NodeSDK({
   metricReader: prometheusExporter,
   instrumentations: [
@@ -238,10 +233,8 @@ const sdk = new NodeSDK({
   ],
 });
 
-// Iniciar SDK
 sdk.start();
 
-// Métricas personalizadas RED
 const meter = metrics.getMeter('alentapp-api');
 
 export function createREDMetrics(meter: Meter) {
@@ -259,49 +252,52 @@ export function createREDMetrics(meter: Meter) {
 }
 
 export { sdk, meter };
+```
 
-**Inicialización en el entrypoint (`app.ts`):**
+**Hook global en `app.ts`:**
 
-// PRIMERO: inicializar OpenTelemetry antes de cualquier otro import  
-import './infrastructure/telemetry.js';
+En lugar de instrumentar manualmente cada controller, se registra un hook global `onResponse` que se ejecuta automáticamente al finalizar cada request, capturando las tres métricas RED en un único lugar:
 
-// Luego el resto de imports  
-import Fastify from 'fastify';  
-// ...
+```typescript
+// Inicializar OpenTelemetry antes de cualquier otro import
+import { meter, createREDMetrics } from './infrastructure/telemetry.js';
 
-**Instrumentación manual en controllers (ejemplo `MemberController.ts`):**
+// Inicializar métricas RED
+const { requestCounter, errorCounter, requestDuration } = createREDMetrics(meter);
 
-import { metrics } from '@opentelemetry/api';
+// Hook global para métricas RED
+server.addHook('onResponse', (request, reply, done) => {
+  const method = request.method;
+  const route = request.routeOptions?.url || request.url.split('?')[0];
+  const status = reply.statusCode.toString();
 
-const meter \= metrics.getMeter('alentapp-api');  
-const requestCounter \= meter.createCounter('http.requests.total');  
-const errorCounter \= meter.createCounter('http.requests.errors');  
-const requestDuration \= meter.createHistogram('http.request.duration', { unit: 'ms' });
+  // Rate: contamos cada request con su método, ruta y status
+  requestCounter.add(1, { method, route, status });
 
-async getAll(request, reply) {  
-  const start \= Date.now();  
-  const method \= request.method;  
-  const route \= request.url.split('?')\[0\];  
-  try {  
-    const members \= await this.getMembersUseCase.execute();  
-    requestCounter.add(1, { method, route, status: '200' });  
-    return reply.status(200).send({ data: members });  
-  } catch (error) {  
-    errorCounter.add(1, { method, route, status: '500' });  
-    return reply.status(500).send({ error: 'Error interno' });  
-  } finally {  
-    requestDuration.record(Date.now() \- start, { method, route });  
-  }  
-}
+  // Errors: si el status es 400 o más, lo registramos como error
+  if (reply.statusCode >= 400) {
+    errorCounter.add(1, { method, route, status });
+  }
 
-**Dependencias a instalar en `packages/api`:**
+  // Duration: tiempo que tardó la API en responder, en milisegundos
+  requestDuration.record(reply.elapsedTime, { method, route });
 
-npm \-w packages/api install \\  
-  @opentelemetry/sdk-node \\  
-  @opentelemetry/auto-instrumentations-node \\  
-  @opentelemetry/exporter-prometheus \\  
-  @opentelemetry/instrumentation-http \\  
+  done();
+});
+```
+
+Este enfoque garantiza que cualquier endpoint nuevo quede instrumentado automáticamente sin necesidad de modificar nada más. También requirió agregar un `setErrorHandler` global para que los errores de dominio se conviertan al status code correcto (400, 404, 409) antes de que el hook los registre, evitando que todos aparezcan como 500.
+
+**Dependencias instaladas en `packages/api`:**
+
+```bash
+npm -w packages/api install \
+  @opentelemetry/sdk-node \
+  @opentelemetry/auto-instrumentations-node \
+  @opentelemetry/exporter-prometheus \
+  @opentelemetry/instrumentation-http \
   @opentelemetry/instrumentation-fastify
+```
 
 **Diagrama de flujo de métricas:**
 
@@ -310,10 +306,10 @@ Petición HTTP
     ▼  
 API (Node.js / Fastify)  
     │  
-    ├── Auto-instrumentación OTel (HTTP, Fastify)  
+    ├── Auto-instrumentación OTel (HTTP, Fastify, DB)  
     │       └──▶ PrometheusExporter  
     │  
-    └── Instrumentación manual RED (controllers)  
+    └── Hook global onResponse (métricas RED)  
             └──▶ PrometheusExporter  
                         │  
                         ▼  
