@@ -49,6 +49,46 @@ curl http://localhost/
 
 El comando devolvió el HTML principal del frontend, incluyendo la referencia al bundle generado por Vite. Esto confirma que Nginx está sirviendo correctamente la aplicación estática.
 
+### Evidencias de la verificación técnica
+
+A continuación se incluyen las capturas utilizadas como evidencia de las mediciones realizadas.
+
+#### Tamaño de imágenes en desarrollo
+
+![Tamaño de imágenes en desarrollo](./evidencias/tamano-imagenes-dev.png)
+
+#### Tamaño de imágenes en producción
+
+![Tamaño de imágenes en producción](./evidencias/tamano-imagenes-prod.png)
+
+#### Tiempo de startup de la API en desarrollo
+
+![Tiempo de startup de la API en desarrollo](./evidencias/tiempo-startup-api-dev.png)
+
+#### Tiempo de startup de la API en producción
+
+![Tiempo de startup de la API en producción](./evidencias/tiempo-startup-api-prod.png)
+
+#### Memoria idle de la API en desarrollo
+
+![Memoria idle de la API en desarrollo](./evidencias/memoria-api-dev.png)
+
+#### Memoria idle de la API en producción
+
+![Memoria idle de la API en producción](./evidencias/memoria-api-prod.png)
+
+#### Endpoints accesibles en desarrollo
+
+![Endpoints accesibles en desarrollo](./evidencias/endpoints-dev.png)
+
+#### Endpoints accesibles en producción
+
+![Endpoints accesibles en producción](./evidencias/endpoints-prod.png)
+
+#### Frontend servido mediante Nginx
+
+![Frontend servido mediante Nginx](./evidencias/frontend-nginx-prod.png)
+
 ### Análisis de resultados
 
 La imagen de la API se redujo de 427 MB a 194 MB, lo que representa una mejora aproximada del 54.6%. Esta reducción se debe al uso de un Dockerfile de producción orientado a runtime, evitando incluir dependencias y herramientas innecesarias en la imagen final.
